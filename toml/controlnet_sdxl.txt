@@ -1,0 +1,3 @@
+perfect hands,best quality, ultra realistic, 32k, raw photo, retail skin, 8k uhd, dslr, 1young beautiful woman,solo, Hyperdetailed Photography,  leather leggings, oversized sweater, knee-high boots,  --w 832  --h 1216  --l 7  --s 20  --d 1026 --cn ./toml/ComfyUI_0001.jpg
+
+perfect hands,best quality, ultra realistic, 32k, raw photo, retail skin, 8k uhd, dslr, 1young beautiful woman,solo, Hyperdetailed Photography,  Ruffled top, high-waisted jeans, kitten heels,  --w 1216  --h 832  --l 7  --s 20  --d 1026 --cn ./toml/ComfyUI_8000.jpg

@@ -1,0 +1,29 @@
+[[datasets]]
+# define the first resolution here
+batch_size = 2
+enable_bucket = true
+resolution = [1024, 1024]
+
+  [[datasets.subsets]]
+  image_dir = "./train/qinglong/train"
+  num_repeats = 1
+
+[[datasets]]
+# define the second resolution here
+batch_size = 3
+enable_bucket = true
+resolution = [768, 768]
+
+  [[datasets.subsets]]
+  image_dir = "./train/qinglong/train"
+  num_repeats = 1
+
+[[datasets]]
+# define the third resolution here
+batch_size = 4
+enable_bucket = true
+resolution = [512, 512]
+
+  [[datasets.subsets]]
+  image_dir = "./train/qinglong/train"
+  num_repeats = 1
