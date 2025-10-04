@@ -28,7 +28,7 @@ $mode_scale = 1.29 # mode scale | mode 缩放 默认1.29 只在mode下生效
 
 # Train related params | 训练相关参数
 $resolution = "1024,1024" # image resolution w,h. 图片分辨率，宽,高。支持非正方形，但必须是 64 倍数。
-$batch_size = 2 # batch size 一次性训练图片批处理数量，根据显卡质量对应调高。
+$batch_size = 4 # batch size 一次性训练图片批处理数量，根据显卡质量对应调高。
 $max_train_epoches = 20 # max train epoches | 最大训练 epoch
 $save_every_n_epochs = 1 # save every n epochs | 每 N 个 epoch 保存一次
 
@@ -56,7 +56,7 @@ $scale_weight_norms = 1.0 #配合 dropout 使用，最大范数约束，推荐1.
 $rank_dropout = 0 #lora模型独创，rank级别的dropout，推荐0.1~0.3，未测试过多
 $module_dropout = 0 #lora模型独创，module级别的dropout(就是分层模块的)，推荐0.1~0.3，未测试过多
 $caption_dropout_every_n_epochs = 0 #dropout caption
-$caption_dropout_rate = 0 #0~1
+$caption_dropout_rate = 0.1 #0~1
 $caption_tag_dropout_rate = 0 #0~1
 
 #noise | 噪声
@@ -74,7 +74,7 @@ $lr_scheduler = "cosine_with_min_lr"
 # "linear", "cosine", "cosine_with_restarts", "polynomial", "constant", "constant_with_warmup" | PyTorch自带6种动态学习率函数
 # constant，常量不变, constant_with_warmup 线性增加后保持常量不变, linear 线性增加线性减少, polynomial 线性增加后平滑衰减, cosine 余弦波曲线, cosine_with_restarts 余弦波硬重启，瞬间最大值。
 # 新增cosine_with_min_lr(适合训练lora)、warmup_stable_decay(适合训练db)、inverse_sqrt
-$lr_warmup_steps = 0 # warmup steps | 学习率预热步数，lr_scheduler 为 constant 或 adafactor 时该值需要设为0。仅在 lr_scheduler 为 constant_with_warmup 时需要填写这个值
+$lr_warmup_steps = 0.05 # warmup steps | 学习率预热步数，lr_scheduler 为 constant 或 adafactor 时该值需要设为0。仅在 lr_scheduler 为 constant_with_warmup 时需要填写这个值
 $lr_decay_steps = 0.5 # decay steps | 学习率衰减步数，仅在 lr_scheduler 为warmup_stable_decay时 需要填写，一般是10%总步数
 $lr_scheduler_num_cycles = 1 # restarts nums | 余弦退火重启次数，仅在 lr_scheduler 为 cosine_with_restarts 时需要填写这个值
 $lr_scheduler_timescale = 0 #times scale |时间缩放，仅在 lr_scheduler 为 inverse_sqrt 时需要填写这个值，默认同lr_warmup_steps
