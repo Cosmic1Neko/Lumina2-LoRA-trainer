@@ -432,7 +432,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
                         text_encoder_conds[i] = encoded_text_encoder_conds[i]
 
         # sample noise, call unet, get target
-        noise_pred, target, timesteps, weighting = self.get_noise_pred_and_target(
+        model_pred_original, target_original, model_pred_downsampled, target_downsampled, timesteps, weighting = self.get_noise_pred_and_target(
             args,
             accelerator,
             noise_scheduler,
@@ -447,15 +447,19 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         )
 
         huber_c = train_util.get_huber_threshold_if_needed(args, timesteps, noise_scheduler)
-        loss = train_util.conditional_loss(noise_pred.float(), target.float(), args.loss_type, "none", huber_c)
+        loss_original = train_util.conditional_loss(model_pred_original.float(), target_original.float(), args.loss_type, "none", huber_c)
+        loss_downsampled = train_util.conditional_loss(model_pred_downsampled.float(), target_downsampled.float(), args.loss_type, "none", huber_c)
         if weighting is not None:
-            loss = loss * weighting
+            loss_original = loss_original * weighting
+            loss_downsampled = loss_downsampled * weighting
         if args.masked_loss or ("alpha_masks" in batch and batch["alpha_masks"] is not None):
-            loss = apply_masked_loss(loss, batch)
-        loss = loss.mean([1, 2, 3])
+            loss_original = apply_masked_loss(loss_original, batch)
+            loss_downsampled = apply_masked_loss(loss_downsampled, batch)
+        loss_original = loss_original.mean([1, 2, 3])
+        loss_downsampled = loss_downsampled.mean([1, 2, 3])
 
         loss_weights = batch["loss_weights"]  # 各sampleごとのweight
-        loss = loss * loss_weights
+        loss = (loss_original + loss_downsampled) * loss_weights
 
         loss = self.post_process_loss(loss, args, timesteps, noise_scheduler)
 
