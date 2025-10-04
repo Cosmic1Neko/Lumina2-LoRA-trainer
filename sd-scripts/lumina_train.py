@@ -54,7 +54,7 @@ from library.config_util import (
 )
 from library.custom_train_functions import apply_masked_loss, add_custom_train_arguments
 
-def apply_average_pool(latent, factor):
+def apply_average_pool(latent, factor=4):
     """
     Apply average pooling to downsample the latent.
 
