@@ -53,6 +53,18 @@ from library.config_util import (
 )
 from library.custom_train_functions import apply_masked_loss, add_custom_train_arguments
 
+def apply_average_pool(latent, factor):
+    """
+    Apply average pooling to downsample the latent.
+
+    Args:
+        latent (torch.Tensor): Latent tensor with shape (1, C, H, W).
+        factor (int): Downsampling factor.
+
+    Returns:
+        torch.Tensor: Downsampled latent tensor.
+    """
+    return F.avg_pool2d(latent, kernel_size=factor, stride=factor)
 
 def train(args):
     train_util.verify_training_args(args)
