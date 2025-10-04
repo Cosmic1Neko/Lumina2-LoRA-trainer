@@ -52,7 +52,7 @@ $loraplus_text_encoder_lr_ratio = 4
 
 #dropout | 抛出(目前和lycoris不兼容，请使用lycoris自带dropout)
 $network_dropout = 0 # dropout 是机器学习中防止神经网络过拟合的技术，建议0.1~0.3 
-$scale_weight_norms = 1.0 #配合 dropout 使用，最大范数约束，推荐1.0
+$scale_weight_norms = 0 #配合 dropout 使用，最大范数约束，推荐1.0
 $rank_dropout = 0 #lora模型独创，rank级别的dropout，推荐0.1~0.3，未测试过多
 $module_dropout = 0 #lora模型独创，module级别的dropout(就是分层模块的)，推荐0.1~0.3，未测试过多
 $caption_dropout_every_n_epochs = 0 #dropout caption
@@ -104,7 +104,7 @@ $prodigy_steps = 50 #prodigy调整步数，最好设置为训练总步数的1/4
 # 数据集处理 打标captain相关
 $shuffle_caption = 1 # 随机打乱tokens
 $keep_tokens = 0 # keep heading N tokens when shuffling caption tokens | 在随机打乱 tokens 时，保留前 N 个不变。
-$prior_loss_weight = 1 #正则化权重,0-1
+$prior_loss_weight = 0 #正则化权重,0-1
 $weighted_captions = 0 #权重打标，默认识别标签权重，语法同webui基础用法。例如(abc), [abc],(abc:1.23),但是不能在括号内加逗号，否则无法识别。一个文件最多75个tokens。
 $secondary_separator = ";;;" #次要分隔符。被该分隔符分隔的部分将被视为一个token，并被洗牌和丢弃。然后由 caption_separator 取代。例如，如果指定 aaa;;bbb;;cc，它将被 aaa,bbb,cc 取代或一起丢弃。
 $keep_tokens_separator = "|||" #批量保留不变，间隔符号
@@ -135,9 +135,9 @@ $config_file = "./toml/" + $output_name + ".toml" #输出文件保存目录和�
 #输出采样图片
 $enable_sample = 1 #1开启出图，0禁用
 $sample_at_first = 1 #是否在训练开始时就出图
-$sample_every_n_epochs = 4 #每n个epoch出一次图
+$sample_every_n_epochs = 1 #每n个epoch出一次图
 $sample_prompts = "./toml/qinglong.txt" #prompt文件路径
-$sample_sampler = "euler_a" #采样器 'ddim', 'pndm', 'heun', 'dpmsolver', 'dpmsolver++', 'dpmsingle', 'k_lms', 'k_euler', 'k_euler_a', 'k_dpm_2', 'k_dpm_2_a'
+$sample_sampler = "euler" #采样器 'ddim', 'pndm', 'heun', 'dpmsolver', 'dpmsolver++', 'dpmsingle', 'k_lms', 'k_euler', 'k_euler_a', 'k_dpm_2', 'k_dpm_2_a'
 
 #wandb 日志同步
 $wandb_api_key = "9c3747c46705bd779c58799295e6bb6d3da5dc98" # wandbAPI KEY，用于登录
@@ -146,7 +146,7 @@ $wandb_api_key = "9c3747c46705bd779c58799295e6bb6d3da5dc98" # wandbAPI KEY，用
 $enable_bucket = 1 #开启分桶
 $min_bucket_reso = 256 # arb min resolution | arb 最小分辨率
 $max_bucket_reso = 2048 # arb max resolution | arb 最大分辨率
-$bucket_no_upscale = 0 #分桶不放大
+$bucket_no_upscale = 1 #分桶不放大
 $persistent_workers = 1 # makes workers persistent, further reduces/eliminates the lag in between epochs. however it may increase memory usage | 跑的更快，吃内存。大概能提速2倍
 $vae_batch_size = 4 #vae批处理大小，2-4
 $clip_skip = 2 # clip skip | 玄学 一般用 2
