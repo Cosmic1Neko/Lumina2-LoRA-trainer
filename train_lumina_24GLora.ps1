@@ -523,7 +523,7 @@ if ($train_mode -ilike "sdxl*") {
     $fp8_base = 0
     $fp8_base_unet = 0
   }
-  if ($bucket_reso_steps -ne 32) { 
+  if ($bucket_reso_steps -ne 16) { 
     [void]$ext_args.Add("--bucket_reso_steps=$bucket_reso_steps")
   }
 }
