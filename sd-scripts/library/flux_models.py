@@ -323,6 +323,12 @@ class AutoEncoder(nn.Module):
             num_res_blocks=params.num_res_blocks,
             z_channels=params.z_channels,
         )
+        for module in self.encoder.modules():
+            if isinstance(module, nn.Conv2d):
+                pad_h, pad_w = module.padding if isinstance(module.padding, tuple) else (module.padding, module.padding)
+                if pad_h > 0 or pad_w > 0:
+                    module.padding_mode = "reflect"
+
         self.decoder = Decoder(
             resolution=params.resolution,
             in_channels=params.in_channels,
@@ -332,6 +338,12 @@ class AutoEncoder(nn.Module):
             num_res_blocks=params.num_res_blocks,
             z_channels=params.z_channels,
         )
+        for module in self.decoder.modules():
+            if isinstance(module, nn.Conv2d):
+                pad_h, pad_w = module.padding if isinstance(module.padding, tuple) else (module.padding, module.padding)
+                if pad_h > 0 or pad_w > 0:
+                    module.padding_mode = "reflect"
+        
         self.reg = DiagonalGaussian()
 
         self.scale_factor = params.scale_factor
