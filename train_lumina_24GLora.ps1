@@ -150,8 +150,9 @@ $bucket_no_upscale = 1 #分桶不放大
 $persistent_workers = 1 # makes workers persistent, further reduces/eliminates the lag in between epochs. however it may increase memory usage | 跑的更快，吃内存。大概能提速2倍
 $vae_batch_size = 4 #vae批处理大小，2-4
 $clip_skip = 2 # clip skip | 玄学 一般用 2
-$cache_latents = 1 #缓存潜变量
-$cache_latents_to_disk = 1 # 缓存图片存盘，下次训练不需要重新缓存，1开启0禁用
+## 不要设置缓存latent，因为该脚本使用多分辨率损失（1024px loss + 256px loss）
+$cache_latents = 0 #缓存潜变量
+$cache_latents_to_disk = 0 # 缓存图片存盘，下次训练不需要重新缓存，1开启0禁用
 $torch_compile = 1 #使用torch编译功能，需要版本大于2.1
 $dynamo_backend = "inductor" #"eager", "aot_eager", "inductor","aot_ts_nvfuser","nvprims_nvfuser","cudagraphs","aot_torchxla_trace_once"用于训练
 
