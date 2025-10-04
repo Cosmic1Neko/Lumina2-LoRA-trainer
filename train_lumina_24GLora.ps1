@@ -15,6 +15,7 @@ $disable_mmap_load_safetensors = 0 #在wsl下加载模型速度增加
 #lumina相关参数
 $train_mode = "lumina_lora"
 $gemma2 = "./clip/gemma_2_2b_bf16.safetensors"
+$gemma2_max_token_length = 512
 $use_flash_attn = 1
 $cfg_trunc = 0.25
 $renorm_cfg = 1.0
@@ -533,6 +534,9 @@ if ($train_mode -ilike "lumina*") {
   $laungh_script = "lumina_" + $laungh_script
   if ($gemma2) {
     [void]$ext_args.Add("--gemma2=$gemma2")
+  }
+  if ($gemma2_max_token_length) {
+    [void]$ext_args.Add("--gemma2_max_token_length=$gemma2_max_token_length")
   }
   if ($timestep_sampling) {
     [void]$ext_args.Add("--timestep_sampling=$timestep_sampling")
