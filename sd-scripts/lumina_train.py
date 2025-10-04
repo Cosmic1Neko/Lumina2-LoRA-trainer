@@ -20,6 +20,7 @@ import toml
 from tqdm import tqdm
 
 import torch
+import torch.nn.functional as F
 from library.device_utils import init_ipex, clean_memory_on_device
 
 init_ipex()
