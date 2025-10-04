@@ -313,7 +313,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         )
 
         # apply model prediction type
-        model_pred_downsampled, weighting = lumina_train_util.apply_model_prediction_type(args, model_pred_downsampled, noisy_model_inpu_downsampled, sigmas)
+        model_pred_downsampled, weighting = lumina_train_util.apply_model_prediction_type(args, model_pred_downsampled, noisy_model_input_downsampled, sigmas)
 
         # flow matching loss
         target_downsampled = latents_downsampled - noise_downsampled
@@ -342,7 +342,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
                 model_pred_prior, _ = lumina_train_util.apply_model_prediction_type(
                     args,
                     model_pred_prior,
-                    noisy_model_input[diff_output_pr_indices],
+                    noisy_model_input_original[diff_output_pr_indices],
                     sigmas[diff_output_pr_indices] if sigmas is not None else None,
                 )
                 target_original[diff_output_pr_indices] = model_pred_prior.to(target_original.dtype)
