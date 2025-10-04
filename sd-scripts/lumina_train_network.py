@@ -247,6 +247,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         is_train=True,
     ):
         assert isinstance(noise_scheduler, sd3_train_utils.FlowMatchEulerDiscreteScheduler)
+        
         def call_dit(img, gemma2_hidden_states, gemma2_attn_mask, timesteps):
             with torch.set_grad_enabled(is_train), accelerator.autocast():
                 # NextDiT forward expects (x, t, cap_feats, cap_mask)
@@ -257,6 +258,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
                     cap_mask=gemma2_attn_mask.to(dtype=torch.int32),  # Gemma2的attention mask
                 )
             return model_pred
+        
         # 原始latents
         noise = torch.randn_like(latents)
         # get noisy model input and timesteps
@@ -291,9 +293,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         latents_downsampled = apply_average_pool(latents.float(), factor=4)
         noise_downsampled = apply_average_pool(noise.float(), factor=4)
         # get noisy model input and timesteps
-        noisy_model_input_downsampled, timesteps, sigmas = lumina_train_util.get_noisy_model_input_and_timesteps(
-            args, noise_scheduler, latents_downsampled, noise_downsampled, accelerator.device, weight_dtype
-        )
+        noisy_model_input_downsampled = (1.0 - sigmas) * latents_downsampled + sigmas * noise_downsampled
 
         # ensure the hidden state will require grad
         if args.gradient_checkpointing:
