@@ -753,8 +753,9 @@ def train(args):
                 gemma2_hidden_states, input_ids, gemma2_attn_mask = text_encoder_conds
 
                 with accelerator.autocast():
+                # 原始latents的前向传播与损失计算
                     # YiYi notes: divide it by 1000 for now because we scale it by 1000 in the transformer model (we should not keep it but I want to keep the inputs same for the model for testing)
-                    model_pred = nextdit(
+                    model_pred_original = nextdit(
                         x=noisy_model_input,  # image latents (B, C, H, W)
                         t=timesteps / 1000,  # timesteps需要除以1000来匹配模型预期
                         cap_feats=gemma2_hidden_states,  # Gemma2的hidden states作为caption features
@@ -763,27 +764,71 @@ def train(args):
                         ),  # Gemma2的attention mask
                     )
                 # apply model prediction type
-                model_pred, weighting = lumina_train_util.apply_model_prediction_type(
-                    args, model_pred, noisy_model_input, sigmas
+                model_pred_original, weighting = lumina_train_util.apply_model_prediction_type(
+                    args, model_pred_original, noisy_model_input, sigmas
                 )
 
                 # flow matching loss
-                target = latents - noise
+                target_original = latents - noise
 
                 # calculate loss
                 huber_c = train_util.get_huber_threshold_if_needed(
                     args, timesteps, noise_scheduler
                 )
-                loss = train_util.conditional_loss(
-                    model_pred.float(), target.float(), args.loss_type, "none", huber_c
+                loss_original = train_util.conditional_loss(
+                    model_pred_original.float(), target_original.float(), args.loss_type, "none", huber_c
                 )
                 if weighting is not None:
-                    loss = loss * weighting
+                    loss_original = loss_original * weighting
                 if args.masked_loss or (
                     "alpha_masks" in batch and batch["alpha_masks"] is not None
                 ):
-                    loss = apply_masked_loss(loss, batch)
-                loss = loss.mean([1, 2, 3])
+                    loss_original = apply_masked_loss(loss_original, batch)
+                loss_original = loss_original.mean([1, 2, 3])
+
+                # 下采样latents的前向传播与损失计算
+                latents_downsampled = apply_average_pool(latents.float(), factor=4)
+                noise_downsampled = apply_average_pool(noise.float(), factor=4)
+                noisy_model_input_downsampled = (1.0 - sigmas) * latents_downsampled + sigmas * noise_downsampled
+
+                with accelerator.autocast():
+                    model_pred_downsampled = nextdit(
+                        x=noisy_model_input_downsampled,
+                        t=timesteps / 1000,  # timesteps are the same
+                        cap_feats=gemma2_hidden_states,  # text conditions are the same
+                        cap_mask=gemma2_attn_mask.to(dtype=torch.int32),
+                    )
+
+                model_pred_downsampled, weighting_downsampled = lumina_train_util.apply_model_prediction_type(
+                    args, model_pred_downsampled, noisy_model_input_downsampled, sigmas
+                )
+
+                target_downsampled = latents_downsampled - noise_downsampled
+
+                loss_downsampled = train_util.conditional_loss(
+                    model_pred_downsampled.float(), target_downsampled.float(), args.loss_type, "none", huber_c
+                )
+
+                if weighting_downsampled is not None:
+                    loss_downsampled = loss_downsampled * weighting_downsampled
+
+                # If using masked loss, the mask also needs to be downsampled
+                if args.masked_loss or ("alpha_masks" in batch and batch["alpha_masks"] is not None):
+                    # Create a temporary batch for downsampled mask
+                    batch_downsampled = batch.copy()
+                    if "alpha_masks" in batch and batch["alpha_masks"] is not None:
+                         # Downsample the mask using nearest-neighbor interpolation to preserve binary values
+                        downsampled_mask = F.interpolate(batch["alpha_masks"], scale_factor=1/4, mode='nearest')
+                        batch_downsampled["alpha_masks"] = downsampled_mask
+                    loss_downsampled = apply_masked_loss(loss_downsampled, batch_downsampled)
+
+                loss_downsampled = loss_downsampled.mean([1, 2, 3])
+
+
+                # --- 3. Combine losses and apply weights ---
+                
+                # Combine the two losses. You might consider adding a weighting factor, e.g., loss = loss_original + 0.5 * loss_downsampled
+                loss = loss_original + loss_downsampled
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
