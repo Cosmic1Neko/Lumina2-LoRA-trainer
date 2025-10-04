@@ -247,22 +247,6 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         is_train=True,
     ):
         assert isinstance(noise_scheduler, sd3_train_utils.FlowMatchEulerDiscreteScheduler)
-        noise = torch.randn_like(latents)
-        # get noisy model input and timesteps
-        noisy_model_input, timesteps, sigmas = lumina_train_util.get_noisy_model_input_and_timesteps(
-            args, noise_scheduler, latents, noise, accelerator.device, weight_dtype
-        )
-
-        # ensure the hidden state will require grad
-        if args.gradient_checkpointing:
-            noisy_model_input.requires_grad_(True)
-            for t in text_encoder_conds:
-                if t is not None and t.dtype.is_floating_point:
-                    t.requires_grad_(True)
-
-        # Unpack Gemma2 outputs
-        gemma2_hidden_states, input_ids, gemma2_attn_mask = text_encoder_conds
-
         def call_dit(img, gemma2_hidden_states, gemma2_attn_mask, timesteps):
             with torch.set_grad_enabled(is_train), accelerator.autocast():
                 # NextDiT forward expects (x, t, cap_feats, cap_mask)
@@ -273,19 +257,66 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
                     cap_mask=gemma2_attn_mask.to(dtype=torch.int32),  # Gemma2的attention mask
                 )
             return model_pred
+        # 原始latents
+        noise = torch.randn_like(latents)
+        # get noisy model input and timesteps
+        noisy_model_input_original, timesteps, sigmas = lumina_train_util.get_noisy_model_input_and_timesteps(
+            args, noise_scheduler, latents, noise, accelerator.device, weight_dtype
+        )
 
-        model_pred = call_dit(
-            img=noisy_model_input,
+        # ensure the hidden state will require grad
+        if args.gradient_checkpointing:
+            noisy_model_input_original.requires_grad_(True)
+            for t in text_encoder_conds:
+                if t is not None and t.dtype.is_floating_point:
+                    t.requires_grad_(True)
+
+        # Unpack Gemma2 outputs
+        gemma2_hidden_states, input_ids, gemma2_attn_mask = text_encoder_conds
+
+        model_pred_original = call_dit(
+            img=noisy_model_input_original,
             gemma2_hidden_states=gemma2_hidden_states,
             gemma2_attn_mask=gemma2_attn_mask,
             timesteps=timesteps,
         )
 
         # apply model prediction type
-        model_pred, weighting = lumina_train_util.apply_model_prediction_type(args, model_pred, noisy_model_input, sigmas)
+        model_pred_original, weighting = lumina_train_util.apply_model_prediction_type(args, model_pred_original, noisy_model_input_original, sigmas)
 
         # flow matching loss
-        target = latents - noise
+        target_original = latents - noise
+        ######################################################################################################
+        # 下采样latents
+        latents_downsampled = apply_average_pool(latents.float(), factor=4)
+        noise_downsampled = apply_average_pool(noise.float(), factor=4)
+        # get noisy model input and timesteps
+        noisy_model_input_downsampled, timesteps, sigmas = lumina_train_util.get_noisy_model_input_and_timesteps(
+            args, noise_scheduler, latents_downsampled, noise_downsampled, accelerator.device, weight_dtype
+        )
+
+        # ensure the hidden state will require grad
+        if args.gradient_checkpointing:
+            noisy_model_input_downsampled.requires_grad_(True)
+            for t in text_encoder_conds:
+                if t is not None and t.dtype.is_floating_point:
+                    t.requires_grad_(True)
+
+        # Unpack Gemma2 outputs
+        gemma2_hidden_states, input_ids, gemma2_attn_mask = text_encoder_conds
+
+        model_pred_downsampled = call_dit(
+            img=noisy_model_input_downsampled,
+            gemma2_hidden_states=gemma2_hidden_states,
+            gemma2_attn_mask=gemma2_attn_mask,
+            timesteps=timesteps,
+        )
+
+        # apply model prediction type
+        model_pred_downsampled, weighting = lumina_train_util.apply_model_prediction_type(args, model_pred_downsampled, noisy_model_inpu_downsampled, sigmas)
+
+        # flow matching loss
+        target_downsampled = latents_downsampled - noise_downsampled
 
         # differential output preservation
         if "custom_attributes" in batch:
@@ -298,7 +329,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
                 network.set_multiplier(0.0)
                 with torch.no_grad():
                     model_pred_prior = call_dit(
-                        img=noisy_model_input[diff_output_pr_indices],
+                        img=noisy_model_input_original[diff_output_pr_indices],
                         gemma2_hidden_states=gemma2_hidden_states[diff_output_pr_indices],
                         timesteps=timesteps[diff_output_pr_indices],
                         gemma2_attn_mask=(gemma2_attn_mask[diff_output_pr_indices]),
@@ -314,9 +345,121 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
                     noisy_model_input[diff_output_pr_indices],
                     sigmas[diff_output_pr_indices] if sigmas is not None else None,
                 )
-                target[diff_output_pr_indices] = model_pred_prior.to(target.dtype)
+                target_original[diff_output_pr_indices] = model_pred_prior.to(target_original.dtype)
 
-        return model_pred, target, timesteps, weighting
+        return model_pred_original, target_original, model_pred_downsampled, target_downsampled, timesteps, weighting
+
+    def process_batch(
+        self,
+        batch,
+        text_encoders,
+        unet,
+        network,
+        vae,
+        noise_scheduler,
+        vae_dtype,
+        weight_dtype,
+        accelerator,
+        args,
+        text_encoding_strategy: strategy_base.TextEncodingStrategy,
+        tokenize_strategy: strategy_base.TokenizeStrategy,
+        is_train=True,
+        train_text_encoder=True,
+        train_unet=True,
+    ) -> torch.Tensor:
+        """
+        Process a batch for the network
+        """
+        with torch.no_grad():
+            if "latents" in batch and batch["latents"] is not None:
+                latents = typing.cast(torch.FloatTensor, batch["latents"].to(accelerator.device))
+            else:
+                # latentに変換
+                if args.vae_batch_size is None or len(batch["images"]) <= args.vae_batch_size:
+                    latents = self.encode_images_to_latents(args, vae, batch["images"].to(accelerator.device, dtype=vae_dtype))
+                else:
+                    chunks = [
+                        batch["images"][i : i + args.vae_batch_size] for i in range(0, len(batch["images"]), args.vae_batch_size)
+                    ]
+                    list_latents = []
+                    for chunk in chunks:
+                        with torch.no_grad():
+                            chunk = self.encode_images_to_latents(args, vae, chunk.to(accelerator.device, dtype=vae_dtype))
+                            list_latents.append(chunk)
+                    latents = torch.cat(list_latents, dim=0)
+
+                # NaNが含まれていれば警告を表示し0に置き換える
+                if torch.any(torch.isnan(latents)):
+                    accelerator.print("NaN found in latents, replacing with zeros")
+                    latents = typing.cast(torch.FloatTensor, torch.nan_to_num(latents, 0, out=latents))
+
+            latents = self.shift_scale_latents(args, latents)
+
+        text_encoder_conds = []
+        text_encoder_outputs_list = batch.get("text_encoder_outputs_list", None)
+        if text_encoder_outputs_list is not None:
+            text_encoder_conds = text_encoder_outputs_list  # List of text encoder outputs
+
+        if len(text_encoder_conds) == 0 or text_encoder_conds[0] is None or train_text_encoder:
+            # TODO this does not work if 'some text_encoders are trained' and 'some are not and not cached'
+            with torch.set_grad_enabled(is_train and train_text_encoder), accelerator.autocast():
+                # Get the text embedding for conditioning
+                if args.weighted_captions:
+                    input_ids_list, weights_list = tokenize_strategy.tokenize_with_weights(batch["captions"])
+                    encoded_text_encoder_conds = text_encoding_strategy.encode_tokens_with_weights(
+                        tokenize_strategy,
+                        self.get_models_for_text_encoding(args, accelerator, text_encoders),
+                        input_ids_list,
+                        weights_list,
+                    )
+                else:
+                    input_ids = [ids.to(accelerator.device) for ids in batch["input_ids_list"]]
+                    encoded_text_encoder_conds = text_encoding_strategy.encode_tokens(
+                        tokenize_strategy,
+                        self.get_models_for_text_encoding(args, accelerator, text_encoders),
+                        input_ids,
+                    )
+                if args.full_fp16:
+                    encoded_text_encoder_conds = [c.to(weight_dtype) for c in encoded_text_encoder_conds]
+
+            # if text_encoder_conds is not cached, use encoded_text_encoder_conds
+            if len(text_encoder_conds) == 0:
+                text_encoder_conds = encoded_text_encoder_conds
+            else:
+                # if encoded_text_encoder_conds is not None, update cached text_encoder_conds
+                for i in range(len(encoded_text_encoder_conds)):
+                    if encoded_text_encoder_conds[i] is not None:
+                        text_encoder_conds[i] = encoded_text_encoder_conds[i]
+
+        # sample noise, call unet, get target
+        noise_pred, target, timesteps, weighting = self.get_noise_pred_and_target(
+            args,
+            accelerator,
+            noise_scheduler,
+            latents,
+            batch,
+            text_encoder_conds,
+            unet,
+            network,
+            weight_dtype,
+            train_unet,
+            is_train=is_train,
+        )
+
+        huber_c = train_util.get_huber_threshold_if_needed(args, timesteps, noise_scheduler)
+        loss = train_util.conditional_loss(noise_pred.float(), target.float(), args.loss_type, "none", huber_c)
+        if weighting is not None:
+            loss = loss * weighting
+        if args.masked_loss or ("alpha_masks" in batch and batch["alpha_masks"] is not None):
+            loss = apply_masked_loss(loss, batch)
+        loss = loss.mean([1, 2, 3])
+
+        loss_weights = batch["loss_weights"]  # 各sampleごとのweight
+        loss = loss * loss_weights
+
+        loss = self.post_process_loss(loss, args, timesteps, noise_scheduler)
+
+        return loss.mean()
 
     def post_process_loss(self, loss, args, timesteps, noise_scheduler):
         return loss
