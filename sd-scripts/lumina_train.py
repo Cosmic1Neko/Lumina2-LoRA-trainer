@@ -818,14 +818,10 @@ def train(args):
                          # Downsample the mask using nearest-neighbor interpolation to preserve binary values
                         downsampled_mask = F.interpolate(batch["alpha_masks"], scale_factor=1/4, mode='nearest')
                         batch_downsampled["alpha_masks"] = downsampled_mask
-                    loss_downsampled = apply_masked_loss(loss_downsampled, batch_downsampled)
-
+                    loss_downsampled = apply_masked_loss(loss_downsampled, batch)
                 loss_downsampled = loss_downsampled.mean([1, 2, 3])
-
-
-                # --- 3. Combine losses and apply weights ---
                 
-                # Combine the two losses. You might consider adding a weighting factor, e.g., loss = loss_original + 0.5 * loss_downsampled
+                # 结合原始损失和下采样损失
                 loss = loss_original + loss_downsampled
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
