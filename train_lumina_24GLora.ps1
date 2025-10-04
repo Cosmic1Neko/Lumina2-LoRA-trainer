@@ -33,7 +33,7 @@ $max_train_epoches = 20 # max train epoches | 最大训练 epoch
 $save_every_n_epochs = 1 # save every n epochs | 每 N 个 epoch 保存一次
 
 $gradient_checkpointing = 1 #梯度检查，开启后可节约显存，但是速度变慢
-$gradient_accumulation_steps = 1 # 梯度累加数量，变相放大batchsize的倍数
+$gradient_accumulation_steps = 4 # 梯度累加数量，变相放大batchsize的倍数
 $optimizer_accumulation_steps = 0
 
 $network_dim = 64 # network dim | 常用 4~128，不是越大越好
@@ -523,7 +523,7 @@ if ($train_mode -ilike "sdxl*") {
     $fp8_base = 0
     $fp8_base_unet = 0
   }
-  if ($bucket_reso_steps -ne 64) { 
+  if ($bucket_reso_steps -ne 32) { 
     [void]$ext_args.Add("--bucket_reso_steps=$bucket_reso_steps")
   }
 }
