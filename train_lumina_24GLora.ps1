@@ -1,15 +1,9 @@
 # LoRA train script by @Akegarasu modify by @bdsqlsz
 
-#训练模式(Lora、db、sdxl_lora、Sdxl_db、sdxl_cn3l、stable_cascade_db、stable_cascade_lora、controlnet、hunyuan_lora、hunyuan_db、sd3_db、sd3_lora、flux_lora、flux_db、lumina_lora)
-$train_mode = "lumina_lora"
-
 # Train data path | 设置训练用模型、图片
 $pretrained_model = "./Stable-diffusion/lumina/lumina_2_model_bf16.safetensors" # base model path | 底模路径
 $vae = "./VAE/ae.sft"
-$is_v2_model = 0 # SD2.0 model | SD2.0模型 2.0模型下 clip_skip 默认无效
-$v_parameterization = 0 # parameterization | 参数化 v2 非512基础分辨率版本必须使用。
 $train_data_dir = "./train/qinglong/train" # train dataset path | 训练数据集路径
-$reg_data_dir = ""	# reg dataset path | 正则数据集化路径
 $network_weights = "" # pretrained weights for LoRA network | 若需要从已有的 LoRA 模型上继续训练，请填写 LoRA 模型路径。
 $network_multiplier = 1.0 # lora权重倍数，默认1.0
 $training_comment = "this LoRA model created from bdsqlsz by bdsqlsz'script" # training_comment | 训练介绍，可以写作者名或者使用触发关键词
@@ -17,51 +11,8 @@ $dataset_class = ""
 #$dataset_config = "./toml/datasets_qinglong.toml" # dataset config | 数据集配置文件路径
 $disable_mmap_load_safetensors = 0 #在wsl下加载模型速度增加
 
-#stable_cascade 训练相关参数
-$effnet_checkpoint_path = "./VAE/effnet_encoder.safetensors" #effnet，相当于轻量化的VAE
-$stage_c_checkpoint_path = "./Stable-diffusion/train/stage_c_bf16.safetensors" #stage_c，相当于base_model
-$text_model_checkpoint_path = "" #te文本编码器，第一次默认不设置则自动从HF下载
-$save_text_model = 1 #0关闭1开启，第一次训练设置保存TE的位置，之后不需要使用，只需要通过前面的参数text_model_checkpoint_path读取机壳
-$previewer_checkpoint_path = "./Stable-diffusion/train/previewer.safetensors" #预览模型，开启预览图的话需要使用。
-$adaptive_loss_weight = 1 #0关闭1开启，使用adaptive_loss_weight，官方推荐。关闭则使用P2LOSSWIGHT
-
-#SD3 训练相关参数
-$clip_l = "./clip/clip_l.safetensors"
-$clip_g = "./clip/clip_g.safetensors"
-$t5xxl = "./clip/t5xxl_fp16.safetensors"
-$t5xxl_device = "" #默认cuda，显存不够可改为CPU，但是很慢
-$t5xxl_dtype = "bf16" #目前支持fp32、fp16、bf16
-$text_encoder_batch_size = 12 #文本编码器批处理大小，4-16
-$num_last_block_to_freeze = 0 #冻结最后几个block，默认0
-$apply_t5_attn_mask = 0 # 是否应用T5的注意力掩码，默认为0
-$clip_l_dropout_rate = 0.0 # clip_l dropout rate | clip_l dropout 率
-$clip_g_dropout_rate = 0.0 # clip_g dropout rate | clip_g dropout 率
-$t5_dropout_rate = 0.0 # t5 dropout rate | t5 dropout 率
-$pos_emb_random_crop_rate = 0.0 # pos emb random crop rate | pos emb 随机裁剪率
-$enable_scaled_pos_embed = 0 # enable scaled pos embed | 启用缩放 pos embed
-$use_t5xxl_cache_only = 1 # 只使用T5缓存，不使用clip_l和clip_g
-$sigma_max_scale = 1.0 # sigma max scale | sigma 最大缩放
-$training_shift = 1.0 # training shift | 训练偏移
-
-#SD3、Flux通用参数
-$apply_t5_attn_mask = 1 # 是否应用T5的注意力掩码，默认为0
-$blockwise_fused_optimizers = 0 # 是否使用块级融合优化器，默认为0
-$blocks_to_swap = 0 # 交换的块数，默认为6
-
-#flux 相关参数
-$ae = $vae
-$timestep_sampling = "nextdit_shift" # 时间步采样方法，可选 sd3用"sigma"、普通DDPM用"uniform" 或 flux用"sigmoid" 或者 "shift". shift需要修改discarete_flow_shift的参数
-$discrete_flow_shift = 3.185 # Euler 离散调度器的离散流位移，sd3默认为3.0
-$sigmoid_scale = 1.0 # sigmoid 采样的缩放因子，默认为 1.0。较大的值会使采样更加均匀
-$model_prediction_type = "raw" # 模型预测类型，可选 flux的"raw"、增加噪声输入"additive" 或 sd选"sigma_scaled"
-$guidance_scale = 1.0 # guidance scale，就是CFG, 默认为 1.0
-$cpu_offload_checkpointing = 0 # 是否使用CPU卸载checkpoint，finetune默认开启
-$mem_eff_save = 1 # 是否使用内存高效保存，默认为1
-$split_qkv = 0 # 是否分离QKV，默认为1
-$train_t5xxl = 0 #训练T5
-$split_mode = 0 # 是否分离模式，默认为0, 开启后只训练单块减少显存加快训练速度。
-
 #lumina相关参数
+$train_mode = "lumina_lora"
 $gemma2 = "./clip/gemma_2_2b_bf16.safetensors"
 $use_flash_attn = 1
 $cfg_trunc = 0.25
@@ -69,29 +20,26 @@ $renorm_cfg = 1.0
 $system_prompt = "You are an assistant designed to generate high-quality images based on user prompts. <Prompt Start> "
 
 #diffuser 参数
-$weighting_scheme = "uniform" # sigma_sqrt, logit_normal, mode, cosmap, uniform
+$weighting_scheme = "logit_normal" # sigma_sqrt, logit_normal, mode, cosmap, uniform
 $logit_mean = 0.0 # logit mean | logit 均值 默认0.0 只在logit_normal下生效
 $logit_std = 1.0 # logit std | logit 标准差 默认1.0 只在logit_normal下生效
 $mode_scale = 1.29 # mode scale | mode 缩放 默认1.29 只在mode下生效
 
-#差异炼丹法
-$base_weights = "" #指定合并到底模basemodel中的模型路径，多个用空格隔开。默认为空，不使用。
-$base_weights_multiplier = "1.0" #指定合并模型的权重，多个用空格隔开，默认为1.0。
 
 # Train related params | 训练相关参数
 $resolution = "1024,1024" # image resolution w,h. 图片分辨率，宽,高。支持非正方形，但必须是 64 倍数。
 $batch_size = 2 # batch size 一次性训练图片批处理数量，根据显卡质量对应调高。
 $max_train_epoches = 20 # max train epoches | 最大训练 epoch
-$save_every_n_epochs = 4 # save every n epochs | 每 N 个 epoch 保存一次
+$save_every_n_epochs = 1 # save every n epochs | 每 N 个 epoch 保存一次
 
 $gradient_checkpointing = 1 #梯度检查，开启后可节约显存，但是速度变慢
 $gradient_accumulation_steps = 1 # 梯度累加数量，变相放大batchsize的倍数
 $optimizer_accumulation_steps = 0
 
-$network_dim = 32 # network dim | 常用 4~128，不是越大越好
-$network_alpha = 16 # network alpha | 常用与 network_dim 相同的值或者采用较小的值，如 network_dim的一半 防止下溢。默认值为 1，使用较小的 alpha 需要提升学习率。
+$network_dim = 64 # network dim | 常用 4~128，不是越大越好
+$network_alpha = 64 # network alpha | 常用与 network_dim 相同的值或者采用较小的值，如 network_dim的一半 防止下溢。默认值为 1，使用较小的 alpha 需要提升学习率。
 
-$train_unet_only = 0 # train U-Net only | 仅训练 U-Net，开启这个会牺牲效果大幅减少显存使用。6G显存可以开启
+$train_unet_only = 1 # train U-Net only | 仅训练 U-Net，开启这个会牺牲效果大幅减少显存使用。6G显存可以开启
 $train_text_encoder_only = 0 # train Text Encoder only | 仅训练 文本编码器
 
 $seed = 1026 # reproducable seed | 设置跑测试用的种子，输入一个prompt和这个种子大概率得到训练图。可以用来试触发关键词
@@ -113,24 +61,14 @@ $caption_tag_dropout_rate = 0 #0~1
 
 #noise | 噪声
 $noise_offset = 0 # help allow SD to gen better blacks and whites，(0-1) | 帮助SD更好分辨黑白，推荐概念0.06，画风0.1
-$adaptive_noise_scale = 0 #自适应偏移调整，10%~100%的noiseoffset大小
-$noise_offset_random_strength = 0 #噪声随机强度
 $multires_noise_iterations = 0 #多分辨率噪声扩散次数，推荐6-10,0禁用。
 $multires_noise_discount = 0 #多分辨率噪声缩放倍数，推荐0.1-0.3,上面关掉的话禁用。
-$min_snr_gamma = 0 #最小信噪比伽马值，减少低step时loss值，让学习效果更好。推荐3-5，5对原模型几乎没有太多影响，3会改变最终结果。修改为0禁用。
-$ip_noise_gamma = 0 #误差噪声添加，防止误差累计
-$ip_noise_gamma_random_strength = 0 #误差噪声随机强度
-$debiased_estimation_loss = 0 #信噪比噪声修正，minsnr高级版
 $loss_type = "l2" #损失函数类型，`smooth_l1`、`huber`、`l2`(就是MSE)
-$huber_schedule = "snr" #huber调度器，可选 `exponential`、`constant` 或 `snr`
-$huber_c = 0.1 #huber损失函数的c参数
-$huber_scale = 1.0 #huber缩放参数
-$immiscible_noise = 0 #是否开启混合噪声
 
 
 # Learning rate | 学习率
-$lr = "1e-5"
-$unet_lr = "4e-4"
+$lr = "1e-4"
+$unet_lr = "1e-4"
 $text_encoder_lr = "1e-5"
 $lr_scheduler = "cosine_with_min_lr"
 # "linear", "cosine", "cosine_with_restarts", "polynomial", "constant", "constant_with_warmup" | PyTorch自带6种动态学习率函数
@@ -143,7 +81,7 @@ $lr_scheduler_timescale = 0 #times scale |时间缩放，仅在 lr_scheduler 为
 $lr_scheduler_min_lr_ratio = 0.1 #min lr ratio |最小学习率比率，仅在 lr_scheduler 为 cosine_with_min_lr、、warmup_stable_decay 时需要填写这个值，默认0
 
 #optimizer | 优化器
-$optimizer_type = "Adopt"
+$optimizer_type = "AdamW8bit"
 # 可选优化器"adaFactor","AdamW","AdamW8bit","Lion","SGDNesterov","SGDNesterov8bit","DAdaptation",  
 # 新增优化器"Lion8bit"(速度更快，内存消耗更少)、"DAdaptAdaGrad"、"DAdaptAdan"(北大最新算法，效果待测)、"DAdaptSGD"
 # 新增DAdaptAdam、DAdaptLion、DAdaptAdanIP，强烈推荐DAdaptAdam
@@ -162,10 +100,6 @@ $d0 = "1e-4" #dadaptation以及prodigy初始学习率
 $fused_backward_pass = 0 #训练大模型float32精度专用节约显存，必须优化器adafactor或者adamw，gradient_accumulation_steps必须为1或者不开。
 $fused_optimizer_groups = 0
 $prodigy_steps = 50 #prodigy调整步数，最好设置为训练总步数的1/4
-
-#gorkfast | 快速拟合
-$gradfilter_ema_alpha = 0 #EMA的动量超参数 设置ema_alpha来激活gradfilter_ema，推荐0.98，为0则关闭
-$gradfilter_ema_lamb = 2.0 #滤波器ema的放大因子超参数。
 
 # 数据集处理 打标captain相关
 $shuffle_caption = 1 # 随机打乱tokens
@@ -218,16 +152,14 @@ $vae_batch_size = 4 #vae批处理大小，2-4
 $clip_skip = 2 # clip skip | 玄学 一般用 2
 $cache_latents = 1 #缓存潜变量
 $cache_latents_to_disk = 1 # 缓存图片存盘，下次训练不需要重新缓存，1开启0禁用
-$torch_compile = 0 #使用torch编译功能，需要版本大于2.1
+$torch_compile = 1 #使用torch编译功能，需要版本大于2.1
 $dynamo_backend = "inductor" #"eager", "aot_eager", "inductor","aot_ts_nvfuser","nvprims_nvfuser","cudagraphs","aot_torchxla_trace_once"用于训练
-$TORCHINDUCTOR_FX_GRAPH_CACHE = 1 #启用本地 FX 图缓存。
-$TORCHINDUCTOR_CACHE_DIR = "./torch_compile_cache" #指定所有磁盘缓存的位置。
 
 #lycoris组件
-$enable_lycoris = 0 # 开启lycoris
+$enable_lycoris = 1 # 开启lycoris
 $conv_dim = 0 #卷积 dim，推荐＜32
 $conv_alpha = 0 #卷积 alpha，推荐1或者0.3
-$algo = "lokr" # algo参数，指定训练lycoris模型种类，
+$algo = "lora" # algo参数，指定训练lycoris模型种类，
 #包括lora(就是locon)、
 #loha
 #IA3
@@ -240,7 +172,7 @@ $algo = "lokr" # algo参数，指定训练lycoris模型种类，
 #dim 与区块大小相对应：我们在这里固定了区块大小而不是区块数量，以使其与 LoRA 更具可比性。
 
 $dropout = 0 #lycoris专用dropout
-$preset = "attn-mlp" #预设训练模块配置
+$preset = "full" #预设训练模块配置
 #full: default preset, train all the layers in the UNet and CLIP|默认设置，训练所有Unet和Clip层
 #full-lin: full but skip convolutional layers|跳过卷积层
 #attn-mlp: train all the transformer block.|kohya配置，训练所有transformer模块
@@ -271,79 +203,10 @@ $enable_lora_fa = 0 # 开启lora_fa，和lycoris、dylora冲突，只能开一�
 #oft
 $enable_oft = 0 # 开启oft，和以上冲突，只能开一个。
 
-# block weights | 分层训练
-$enable_block_weights = 0 #开启分层训练，和lycoris冲突，只能开一个。
-$down_lr_weight = "1,0.2,1,1,0.2,1,1,0.2,1,1,1,1" #12层，需要填写12个数字，0-1.也可以使用函数写法，支持sine, cosine, linear, reverse_linear, zeros，参考写法down_lr_weight=cosine+.25 
-$mid_lr_weight = "1"  #1层，需要填写1个数字，其他同上。
-$up_lr_weight = "1,1,1,1,1,1,1,1,1,1,1,1"   #12层，同上上。
-$block_lr_zero_threshold = 0  #如果分层权重不超过这个值，那么直接不训练。默认0。
-
-$enable_block_dim = 0 #开启dim分层训练
-$block_dims = "128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128" #dim分层，25层
-$block_alphas = "16,16,32,16,32,32,64,16,16,64,64,64,16,64,16,64,32,16,16,64,16,16,16,64,16"  #alpha分层，25层
-$conv_block_dims = "32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32" #convdim分层，25层
-$conv_block_alphas = "1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1" #convalpha分层，25层
-
-# block lr
-$enable_block_lr = 0
-$block_lr = "0,$lr,$lr,0,$lr,$lr,0,$lr,$lr,0,$lr,$lr,$lr,$lr,$lr,$lr,$lr,$lr,$lr,$lr,$lr,$lr,0"
-
-# flux block dim
-$enable_flux_block_dim = 0
-$img_attn_dim = $network_dim
-$txt_attn_dim = $network_dim
-$img_mlp_dim = $network_dim
-$txt_mlp_dim = $network_dim
-$img_mod_dim = 0
-$txt_mod_dim = 0
-$single_dim = $network_dim
-$single_mod_dim = 0
-$in_dims = "$network_dim,0,0,0,$network_dim"
-
-# flux block layer
-$enable_flux_block = 0
-$train_single_block_indices = "all"
-$train_double_block_indices = "all"
-
-# sd3 block dim
-$enable_sd3_block_dim = 1
-$context_attn_dim = $network_dim
-$context_mlp_dim = $network_dim
-$context_mod_dim = 0
-$x_attn_dim = $network_dim
-$x_mlp_dim = $network_dim
-$x_mod_dim = 0
-$emb_dims = "$network_dim,0,$network_dim,$network_dim,0,$network_dim" # 6 dims for context_embedder, t_embedder, x_embedder, y_embedder, final_layer_adaLN_modulation, final_layer_linear
-
-# sd3 block layer
-$enable_sd3_block = 1
-$train_block_indices = "3-22" #2-19 for SD3.5M, 12-24,30-37 for SD3.5L
-
-#SDXL专用参数
-#https://www.bilibili.com/video/BV1tk4y137fo/
-$min_timestep = 0 #最小时序，默认值0
-$max_timestep = 1000 #最大时序，默认值1000
-$cache_text_encoder_outputs = 1 #开启缓存文本编码器，开启后减少显存使用。但是无法和shuffle共用
-$cache_text_encoder_outputs_to_disk = 1 #开启缓存文本编码器，开启后减少显存使用。但是无法和shuffle共用
-$no_half_vae = 0 #禁止半精度，防止黑图。无法和mixed_precision混合精度共用。
-$bucket_reso_steps = 32 #SDXL分桶可以选择32或者64。32更精细分桶。默认为64
-
 #db checkpoint train
 $stop_text_encoder_training = 0
 $no_token_padding = 0 #不进行分词器填充
 
-#sdxl_db
-$diffusers_xformers = 0
-$train_text_encoder = 0
-$learning_rate_te1 = "5e-8"
-$learning_rate_te2 = "5e-8"
-$learning_rate_te3 = "0"
-
-#sdxl_cn3l or controlnet
-$controlnet_model_name_or_path = "./ControlNet/SDXL/xinsir_controlnet-depth-sdxl-1.0.safetensors" #控制网络模型路径
-$conditioning_data_dir = "./train/dsine/0414-depth" #条件图路径
-$cond_emb_dim = 32
-$masked_loss = 0 #开启蒙版loss，对条件图处理，R通道255视为掩码mask，0视为无掩码
 
 #多卡设置
 $multi_gpu = 0                         #multi gpu | 多显卡训练开关，0关1开， 该参数仅限在显卡数 >= 2 使用
