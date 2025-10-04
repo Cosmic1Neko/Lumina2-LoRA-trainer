@@ -180,10 +180,12 @@ def split_train_val(
 
 
 class ImageInfo:
-    def __init__(self, image_key: str, num_repeats: int, caption: str, is_reg: bool, absolute_path: str) -> None:
+    def __init__(self, image_key: str, num_repeats: int, caption: str, artist: str, characters: str, is_reg: bool, absolute_path: str) -> None:
         self.image_key: str = image_key
         self.num_repeats: int = num_repeats
         self.caption: str = caption
+        self.artist: str = artist
+        self.characters: str = characters
         self.is_reg: bool = is_reg
         self.absolute_path: str = absolute_path
         self.image_size: Tuple[int, int] = None
@@ -816,7 +818,47 @@ class BaseDataset(torch.utils.data.Dataset):
     def add_replacement(self, str_from, str_to):
         self.replacements[str_from] = str_to
 
-    def process_caption(self, subset: BaseSubset, caption):
+    def process_caption(self, subset: BaseSubset, image_info: ImageInfo):
+        # 1. 格式化 artist
+        formatted_artist = ""
+        if image_info.artist:
+            formatted_artist = f"@{image_info.artist.strip()}"
+
+        # 2. 格式化 characters
+        formatted_characters = ""
+        if image_info.characters:
+            # 使用正则表达式分割，可以同时处理逗号和空格
+            char_list = re.split(r'[,\s]+', image_info.characters.strip())
+            # 过滤掉可能产生的空字符串
+            char_list = [c.strip() for c in char_list if c.strip()]
+            if char_list:
+                # 添加 '#' 前缀并用 ", " 连接
+                formatted_characters = ", ".join([f"#{c}" for c in char_list])
+
+        # 3. 构建第一行 (artist 和 characters)
+        # 过滤掉空的部分，然后用 ", " 连接
+        first_line_parts = [p for p in [formatted_artist, formatted_characters] if p]
+        first_line = ", ".join(first_line_parts)
+
+        # 4. 随机选择 caption 或 tags 作为第二行
+        second_line_options = []
+        if image_info.caption and image_info.caption.strip():
+            second_line_options.append(image_info.caption.strip())
+        if image_info.tags and image_info.tags.strip():
+            second_line_options.append(image_info.tags.strip())
+
+        second_line = ""
+        if second_line_options:
+            second_line = random.choice(second_line_options)
+
+        # 5. 拼接最终的 caption
+        if first_line and second_line:
+            caption = f"{first_line}\n{second_line}"
+        elif first_line:
+            caption = first_line
+        else:
+            caption = second_line
+        
         # caption に prefix/suffix を付ける
         if subset.caption_prefix:
             caption = subset.caption_prefix + " " + caption
@@ -860,7 +902,8 @@ class BaseDataset(torch.utils.data.Dataset):
                 caption = caption.replace(replacer1, "{").replace(replacer2, "}")
             else:
                 # if caption is multiline, use the first line
-                caption = caption.split("\n")[0]
+                #caption = caption.split("\n")[0]
+                pass
 
             if subset.shuffle_caption or subset.token_warmup_step > 0 or subset.caption_tag_dropout_rate > 0:
                 fixed_tokens = []
@@ -1724,7 +1767,7 @@ class BaseDataset(torch.utils.data.Dataset):
             text_encoder_outputs_list.append(text_encoder_outputs)
 
             if tokenization_required:
-                caption = self.process_caption(subset, image_info.caption)
+                caption = self.process_caption(subset, image_info)
                 input_ids = [ids[0] for ids in self.tokenize_strategy.tokenize(caption)]  # remove batch dimension
                 # if self.XTI_layers:
                 #     caption_layer = []
@@ -2275,6 +2318,9 @@ class FineTuningDataset(BaseDataset):
 
                 caption = img_md.get("caption")
                 tags = img_md.get("tags")
+                artist = img_md.get("artist")
+                characters = img_md.get("characters")
+                """
                 if caption is None:
                     caption = tags  # could be multiline
                     tags = None
@@ -2294,11 +2340,18 @@ class FineTuningDataset(BaseDataset):
                     if tags is not None and len(tags) > 0:
                         caption = caption + subset.caption_separator + tags
                         tags_list.append(tags)
-
+                
                 if caption is None:
                     caption = ""
-
-                image_info = ImageInfo(image_key, subset.num_repeats, caption, False, abs_path)
+                """
+                if caption is None:
+                    caption = ""
+                if tags is None:
+                    tags = ""
+                if tags:
+                    tags_list.append(tags)
+                    
+                image_info = ImageInfo(image_key, subset.num_repeats, caption, tags, artist, characters, False, abs_path)
                 image_info.image_size = img_md.get("train_resolution")
 
                 if not subset.color_aug and not subset.random_crop:
