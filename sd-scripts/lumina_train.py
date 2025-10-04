@@ -798,7 +798,7 @@ def train(args):
                         cap_mask=gemma2_attn_mask.to(dtype=torch.int32),
                     )
                 # apply model prediction type
-                model_pred_downsampled, weighting_downsampled = lumina_train_util.apply_model_prediction_type(
+                model_pred_downsampled, weighting = lumina_train_util.apply_model_prediction_type(
                     args, model_pred_downsampled, noisy_model_input_downsampled, sigmas
                 )
 
