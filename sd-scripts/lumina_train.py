@@ -811,21 +811,14 @@ def train(args):
                 )
                 if weighting is not None:
                     loss_downsampled = loss_downsampled * weighting
-                if args.masked_loss or ("alpha_masks" in batch and batch["alpha_masks"] is not None):
-                    # Create a temporary batch for downsampled mask
-                    batch_downsampled = batch.copy()
-                    if "alpha_masks" in batch and batch["alpha_masks"] is not None:
-                         # Downsample the mask using nearest-neighbor interpolation to preserve binary values
-                        downsampled_mask = F.interpolate(batch["alpha_masks"], scale_factor=1/4, mode='nearest')
-                        batch_downsampled["alpha_masks"] = downsampled_mask
+                if args.masked_loss or (
+                    "alpha_masks" in batch and batch["alpha_masks"] is not None
+                ):
                     loss_downsampled = apply_masked_loss(loss_downsampled, batch)
                 loss_downsampled = loss_downsampled.mean([1, 2, 3])
-                
-                # 结合原始损失和下采样损失
-                loss = loss_original + loss_downsampled
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
-                loss = loss * loss_weights
+                loss = (loss_original + loss_downsampled) * loss_weights
                 loss = loss.mean()
 
                 # backward
