@@ -29,6 +29,19 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def apply_average_pool(latent, factor=4):
+    """
+    Apply average pooling to downsample the latent.
+
+    Args:
+        latent (torch.Tensor): Latent tensor with shape (1, C, H, W).
+        factor (int): Downsampling factor.
+
+    Returns:
+        torch.Tensor: Downsampled latent tensor.
+    """
+    return torch.nn.functional.avg_pool2d(latent, kernel_size=factor, stride=factor)
+
 
 class LuminaNetworkTrainer(train_network.NetworkTrainer):
     def __init__(self):
