@@ -4,7 +4,7 @@
 $pretrained_model = "./Stable-diffusion/lumina/lumina_2_model_bf16.safetensors" # base model path | 底模路径
 $vae = "./VAE/ae.sft" # 使用Flux EQ-VAE版本 (Anzhc/MS-LC-EQ-D-VR_VAE/Pad Flux EQ v2 B1.safetensors)
 $train_data_dir = "./train/qinglong/train" # train dataset path | 训练数据集路径
-$in_json = "./train/database.json"
+$in_json = "./train/metadata.json"
 $network_weights = "" # pretrained weights for LoRA network | 若需要从已有的 LoRA 模型上继续训练，请填写 LoRA 模型路径。
 $network_multiplier = 1.0 # lora权重倍数，默认1.0
 $training_comment = "this LoRA model created from bdsqlsz by bdsqlsz'script" # training_comment | 训练介绍，可以写作者名或者使用触发关键词
