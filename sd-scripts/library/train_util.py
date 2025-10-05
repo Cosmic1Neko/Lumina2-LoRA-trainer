@@ -837,8 +837,10 @@ class BaseDataset(torch.utils.data.Dataset):
             # process wildcards
             if subset.enable_wildcard:
                 # if caption is multiline, random choice one line
-                if "\n" in caption:
-                    caption = random.choice(caption.split("\n"))
+                #if "\n" in caption:
+                #    caption = random.choice(caption.split("\n"))
+                if " <split> " in caption:
+                    caption = random.choice(caption.split(" <split> "))
 
                 # wildcard is like '{aaa|bbb|ccc...}'
                 # escape the curly braces like {{ or }}
