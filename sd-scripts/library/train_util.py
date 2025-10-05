@@ -2199,7 +2199,7 @@ class DreamBoothDataset(BaseDataset):
                 num_train_images += num_repeats * len(img_paths)
 
             for img_path, caption, size in zip(img_paths, captions, sizes):
-                info = ImageInfo(img_path, num_repeats, caption, subset.is_reg, img_path)
+                info = ImageInfo(img_path, num_repeats, caption, tags, artist, characters, subset.is_reg, img_path)
                 info.resize_interpolation = (
                     subset.resize_interpolation if subset.resize_interpolation is not None else self.resize_interpolation
                 )
