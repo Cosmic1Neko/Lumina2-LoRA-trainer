@@ -19,7 +19,7 @@ $gemma2_max_token_length = 512
 $use_flash_attn = 1
 $cfg_trunc = 0.25
 $renorm_cfg = 1.0
-$system_prompt = "You are an assistant designed to generate high-quality images based on user prompts. <Prompt Start> "
+$system_prompt = "You are an assistant designed to generate high-quality images based on user prompts. <Prompt Start>\n"
 
 #diffuser 参数
 $weighting_scheme = "logit_normal" # sigma_sqrt, logit_normal, mode, cosmap, uniform
@@ -110,7 +110,7 @@ $prior_loss_weight = 0 #正则化权重,0-1
 $weighted_captions = 0 #权重打标，默认识别标签权重，语法同webui基础用法。例如(abc), [abc],(abc:1.23),但是不能在括号内加逗号，否则无法识别。一个文件最多75个tokens。
 $secondary_separator = ";;;" #次要分隔符。被该分隔符分隔的部分将被视为一个token，并被洗牌和丢弃。然后由 caption_separator 取代。例如，如果指定 aaa;;bbb;;cc，它将被 aaa,bbb,cc 取代或一起丢弃。
 $keep_tokens_separator = "|||" #批量保留不变，间隔符号
-$enable_wildcard = 0 #通配符随机抽卡，格式参考 {aaa|bbb|ccc}，多行字幕可随机使用
+$enable_wildcard = 1 #通配符随机抽卡，格式参考 {aaa|bbb|ccc}，多行字幕可随机使用
 $caption_prefix = "" #打标前缀，可以加入质量词如果底模需要，例如masterpiece, best quality,
 $caption_suffix = "" #打标后缀，可以加入相机镜头如果需要，例如full body等
 $alpha_mask = 0 #是否使用透明蒙版检测
