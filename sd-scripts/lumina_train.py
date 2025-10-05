@@ -20,7 +20,6 @@ import toml
 from tqdm import tqdm
 
 import torch
-import torch.nn.functional as F
 from library.device_utils import init_ipex, clean_memory_on_device
 
 init_ipex()
@@ -65,7 +64,7 @@ def apply_average_pool(latent, factor=4):
     Returns:
         torch.Tensor: Downsampled latent tensor.
     """
-    return F.avg_pool2d(latent, kernel_size=factor, stride=factor)
+    return torch.nn.functional.avg_pool2d(latent, kernel_size=factor, stride=factor)
 
 def train(args):
     train_util.verify_training_args(args)
