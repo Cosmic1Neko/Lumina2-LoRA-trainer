@@ -839,8 +839,8 @@ class BaseDataset(torch.utils.data.Dataset):
                 # if caption is multiline, random choice one line
                 #if "\n" in caption:
                 #    caption = random.choice(caption.split("\n"))
-                if " <split> " in caption:
-                    caption = random.choice(caption.split(" <split> "))
+                if "<split>" in caption:
+                    caption = random.choice(caption.split("<split>"))
 
                 # wildcard is like '{aaa|bbb|ccc...}'
                 # escape the curly braces like {{ or }}
@@ -862,7 +862,7 @@ class BaseDataset(torch.utils.data.Dataset):
                 caption = caption.replace(replacer1, "{").replace(replacer2, "}")
             else:
                 # if caption is multiline, use the first line
-                caption = caption.split("\n")[0]
+                caption = caption.split("<spilt>")[0]
 
             if subset.shuffle_caption or subset.token_warmup_step > 0 or subset.caption_tag_dropout_rate > 0:
                 fixed_tokens = []
@@ -1978,7 +1978,7 @@ class DreamBoothDataset(BaseDataset):
                             raise e
                         assert len(lines) > 0, f"caption file is empty / キャプションファイルが空です: {cap_path}"
                         if enable_wildcard:
-                            caption = "\n".join([line.strip() for line in lines if line.strip() != ""])  # 空行を除く、改行で連結
+                            caption = "<split>".join([line.strip() for line in lines if line.strip() != ""])  # 空行を除く、改行で連結
                         else:
                             caption = lines[0].strip()
                     break
@@ -2284,12 +2284,12 @@ class FineTuningDataset(BaseDataset):
                 if subset.enable_wildcard:
                     # tags must be single line
                     if tags is not None:
-                        tags = tags.replace("\n", subset.caption_separator)
+                        tags = tags.replace("<split>", subset.caption_separator)
 
                     # add tags to each line of caption
                     if caption is not None and tags is not None:
-                        caption = "\n".join(
-                            [f"{line}{subset.caption_separator}{tags}" for line in caption.split("\n") if line.strip() != ""]
+                        caption = "<split>".join(
+                            [f"{line}{subset.caption_separator}{tags}" for line in caption.split("<split>") if line.strip() != ""]
                         )
                 else:
                     # use as is
