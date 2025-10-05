@@ -146,6 +146,7 @@ $wandb_api_key = "9c3747c46705bd779c58799295e6bb6d3da5dc98" # wandbAPI KEY，用
 
 # 其他设置
 $enable_bucket = 1 #开启分桶
+$bucket_reso_steps = 32
 $min_bucket_reso = 256 # arb min resolution | arb 最小分辨率
 $max_bucket_reso = 2048 # arb max resolution | arb 最大分辨率
 $bucket_no_upscale = 1 #分桶不放大
