@@ -1057,6 +1057,8 @@ if ($optimizer_type -ieq "Lion" -or $optimizer_type -ieq "Lion8bit" -or $optimiz
 if ($optimizer_type -ieq "AdamW8bit") {
   $optimizer_type = ""
   [void]$ext_args.Add("--use_8bit_adam")
+  [void]$ext_args.Add("--optimizer_args")
+  [void]$ext_args.Add("weight_decay=0.01")
 }
 
 if ($optimizer_type -ieq "PagedAdamW8bit" -or $optimizer_type -ieq "AdamW") {
