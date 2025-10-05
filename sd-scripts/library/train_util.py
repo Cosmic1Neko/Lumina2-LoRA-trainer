@@ -180,12 +180,15 @@ def split_train_val(
 
 
 class ImageInfo:
-    def __init__(self, image_key: str, num_repeats: int, caption: str, artist: str, characters: str, is_reg: bool, absolute_path: str) -> None:
+    def __init__(self, image_key: str, num_repeats: int, caption: str, tags: str, artist: str, characters: str, is_reg: bool, absolute_path: str) -> None:
         self.image_key: str = image_key
         self.num_repeats: int = num_repeats
         self.caption: str = caption
+        ##################################
+        self.tags: str = tags
         self.artist: str = artist
         self.characters: str = characters
+        ##################################
         self.is_reg: bool = is_reg
         self.absolute_path: str = absolute_path
         self.image_size: Tuple[int, int] = None
