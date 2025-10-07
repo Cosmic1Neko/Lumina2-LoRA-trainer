@@ -446,8 +446,8 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
             is_train=is_train,
         )
         
-        huber_c_original = train_util.get_huber_threshold_if_needed(args, target_original, noise_scheduler)
-        huber_c_downsampled = train_util.get_huber_threshold_if_needed(args, target_downsampled, noise_scheduler)
+        huber_c_original = train_util.get_huber_threshold_if_needed(args, timesteps_original, noise_scheduler)
+        huber_c_downsampled = train_util.get_huber_threshold_if_needed(args, timesteps_downsampled, noise_scheduler)
         loss_original = train_util.conditional_loss(model_pred_original.float(), target_original.float(), args.loss_type, "none", huber_c_original)
         loss_downsampled = train_util.conditional_loss(model_pred_downsampled.float(), target_downsampled.float(), args.loss_type, "none", huber_c_downsampled)
         if weighting_original and weighting_downsampled is not None:
