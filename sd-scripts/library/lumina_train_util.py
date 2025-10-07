@@ -852,7 +852,7 @@ def get_noisy_model_input_and_timesteps(
         noisy_model_input = (1 - t) * noise + t * latents
     elif args.timestep_sampling == "nextdit_shift":
         u = torch.rand((bsz,), device=device) # u代表原始均匀分布
-        mu = get_lin_function(y1=0.5, y2=1.15)((h // 2) * (w // 2))
+        mu = get_lin_function()((h // 2) * (w // 2))
         t = time_shift(mu, 1.0, u) # 使用 u 进行变换得到 t
 
         timesteps = t * 1000.0
