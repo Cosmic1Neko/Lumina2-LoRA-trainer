@@ -306,7 +306,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         latents_downsampled = apply_average_pool(latents.float(), factor=4)
         noise_downsampled = apply_average_pool(noise.float(), factor=4)
         # get_noisy_model_input_and_timesteps函数不支持手动输入t，因此手动实现下采样latents匹配的"nextdit_shift"模式下的加噪模式
-        h, w = latents_downsampled.shape
+        _, _, h, w = latents_downsampled.shape
         mu = lumina_train_util.get_lin_function(y1=0.5, y2=1.15)((h // 2) * (w // 2))
         t = lumina_train_util.time_shift(mu, 1.0, t = timesteps / 1000.0)
         t = t.view(-1, 1, 1, 1)
