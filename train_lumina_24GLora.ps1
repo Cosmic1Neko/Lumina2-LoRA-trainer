@@ -26,7 +26,7 @@ $system_prompt = "You are an assistant designed to generate high-quality images 
 
 
 # Train related params | 训练相关参数
-$resolution = "1024,1024" # image resolution w,h. 图片分辨率，宽,高。支持非正方形，但必须是 64 倍数。
+$resolution = "1280,1280" # image resolution w,h. 图片分辨率，宽,高。支持非正方形，但必须是 64 倍数。
 $batch_size = 2 # batch size 一次性训练图片批处理数量，根据显卡质量对应调高。
 $max_train_epoches = 20 # max train epoches | 最大训练 epoch
 $save_every_n_epochs = 1 # save every n epochs | 每 N 个 epoch 保存一次
