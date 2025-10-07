@@ -279,7 +279,6 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         noisy_model_input_original, timesteps_original, sigmas = lumina_train_util.get_noisy_model_input_and_timesteps(
             args, noise_scheduler, latents_original, noise_original, accelerator.device, weight_dtype
         )
-        timesteps = timesteps_original
 
         # ensure the hidden state will require grad
         if args.gradient_checkpointing:
@@ -366,7 +365,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
                 target_original[diff_output_pr_indices] = model_pred_prior.to(target_original.dtype)
         """
 
-        return model_pred_original, target_original, model_pred_downsampled, target_downsampled, timesteps, weighting
+        return model_pred_original, target_original, timesteps_original, model_pred_downsampled, target_downsampled, timesteps_downsampled, weighting
 
     def process_batch(
         self,
