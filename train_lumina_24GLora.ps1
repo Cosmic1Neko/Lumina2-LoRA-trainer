@@ -22,12 +22,6 @@ $cfg_trunc = 0.25
 $renorm_cfg = 1.0
 $system_prompt = "You are an assistant designed to generate high-quality images based on user prompts. <Prompt Start>\n"
 
-#diffuser 参数 (注：本质于discrete_flow_shift参数一样改变了对t的采样分布，启用前者时此项建议设为"uniform")
-$weighting_scheme = "uniform" # sigma_sqrt, logit_normal, mode, cosmap, uniform
-$logit_mean = 0.0 # logit mean | logit 均值 默认0.0 只在logit_normal下生效
-$logit_std = 1.0 # logit std | logit 标准差 默认1.0 只在logit_normal下生效
-$mode_scale = 1.29 # mode scale | mode 缩放 默认1.29 只在mode下生效
-
 
 # Train related params | 训练相关参数
 $resolution = "1024,1024" # image resolution w,h. 图片分辨率，宽,高。支持非正方形，但必须是 64 倍数。
