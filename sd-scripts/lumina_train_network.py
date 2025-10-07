@@ -310,7 +310,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         mu = lumina_train_util.get_lin_function(y1=0.5, y2=1.15)((h // 2) * (w // 2))
         t = lumina_train_util.time_shift(mu, 1.0, t = timesteps / 1000.0)
         t = t.view(-1, 1, 1, 1)
-        noisy_model_input = (1 - t) * noise_downsampled + t * latents_downsampled
+        noisy_model_input_downsampled = (1 - t) * noise_downsampled + t * latents_downsampled
 
         # ensure the hidden state will require grad
         if args.gradient_checkpointing:
