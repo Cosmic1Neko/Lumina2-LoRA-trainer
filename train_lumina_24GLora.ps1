@@ -17,7 +17,7 @@ $train_mode = "lumina_lora"
 $gemma2 = "./clip/gemma_2_2b_bf16.safetensors"
 $gemma2_max_token_length = 512
 $use_flash_attn = 1
-$discrete_flow_shift = 0.8 # 时间步采样密度，越大说明模型在高噪声处的训练程度越高，只有timestep_sampling = "shift"时有用
+$discrete_flow_shift = 6.0 # 时间步采样密度，越大说明模型在高噪声处的训练程度越高，只有timestep_sampling = "shift"时有用
 $timestep_sampling = "nextdit_shift"
 $model_prediction_type = "raw"
 $cfg_trunc = 0.25
