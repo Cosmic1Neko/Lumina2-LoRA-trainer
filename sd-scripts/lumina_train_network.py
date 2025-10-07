@@ -300,7 +300,8 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
 
         # flow matching loss
         target = latents - noise
-        
+
+        """
         # differential output preservation
         if "custom_attributes" in batch:
             diff_output_pr_indices = []
@@ -329,6 +330,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
                     sigmas[diff_output_pr_indices] if sigmas is not None else None,
                 )
                 target[diff_output_pr_indices] = model_pred_prior.to(target.dtype)
+            """
 
         return model_pred, target, timesteps, weighting
 
@@ -450,7 +452,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         huber_c_downsampled = train_util.get_huber_threshold_if_needed(args, timesteps_downsampled, noise_scheduler)
         loss_original = train_util.conditional_loss(model_pred_original.float(), target_original.float(), args.loss_type, "none", huber_c_original)
         loss_downsampled = train_util.conditional_loss(model_pred_downsampled.float(), target_downsampled.float(), args.loss_type, "none", huber_c_downsampled)
-        if weighting_original and weighting_downsampled is not None:
+        if weighting_original is not None and weighting_downsampled is not None:
             loss_original = loss_original * weighting_original
             loss_downsampled = loss_downsampled * weighting_downsampled
         if args.masked_loss or ("alpha_masks" in batch and batch["alpha_masks"] is not None):
