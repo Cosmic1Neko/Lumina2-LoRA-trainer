@@ -17,6 +17,7 @@ $train_mode = "lumina_lora"
 $gemma2 = "./clip/gemma_2_2b_bf16.safetensors"
 $gemma2_max_token_length = 512
 $use_flash_attn = 1
+$discrete_flow_shift = 6.0
 $cfg_trunc = 0.25
 $renorm_cfg = 1.0
 $system_prompt = "You are an assistant designed to generate high-quality images based on user prompts. <Prompt Start>\n"
