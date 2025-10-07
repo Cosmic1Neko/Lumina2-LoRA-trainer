@@ -273,10 +273,11 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
             return model_pred
         
         # 原始latents
-        noise = torch.randn_like(latents)
+        latents_original = latents
+        noise_original = torch.randn_like(latents_original)
         # get noisy model input and timesteps
-        noisy_model_input_original, timesteps, sigmas, u = lumina_train_util.get_noisy_model_input_and_timesteps(
-            args, noise_scheduler, latents, noise, accelerator.device, weight_dtype
+        noisy_model_input_original, timesteps_original, sigmas = lumina_train_util.get_noisy_model_input_and_timesteps(
+            args, noise_scheduler, latents_original, noise_original, accelerator.device, weight_dtype
         )
 
         # ensure the hidden state will require grad
@@ -293,25 +294,22 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
             img=noisy_model_input_original,
             gemma2_hidden_states=gemma2_hidden_states,
             gemma2_attn_mask=gemma2_attn_mask,
-            timesteps=timesteps,
+            timesteps=timesteps_original,
         )
 
         # apply model prediction type
         model_pred_original, weighting = lumina_train_util.apply_model_prediction_type(args, model_pred_original, noisy_model_input_original, sigmas)
 
         # flow matching loss
-        target_original = latents - noise
+        target_original = latents_original - noise_original
         ######################################################################################################
         # 下采样latents
-        latents_downsampled = apply_average_pool(latents.float(), factor=4)
+        latents_downsampled = apply_average_pool(latents_original.float(), factor=4)
         noise_downsampled = torch.randn_like(latents_downsampled)
-        # get_noisy_model_input_and_timesteps函数不支持手动输入t，因此手动实现下采样latents匹配的"nextdit_shift"模式下的加噪模式
-        _, _, h, w = latents_downsampled.shape
-        mu_downsampled = lumina_train_util.get_lin_function()((h // 2) * (w // 2))
-        t_downsampled = lumina_train_util.time_shift(mu_downsampled, 1.0, t = u)
-        t_downsampled = t_downsampled.view(-1, 1, 1, 1)
-        timesteps_downsampled = t_downsampled * 1000.0
-        noisy_model_input_downsampled = (1 - t_downsampled) * noise_downsampled + t_downsampled * latents_downsampled
+        # get noisy model input and timesteps
+        noisy_model_input_downsampled, timesteps_downsampled, sigmas = lumina_train_util.get_noisy_model_input_and_timesteps(
+            args, noise_scheduler, latents_downsampled, noise_downsampled, accelerator.device, weight_dtype
+        )
 
         # ensure the hidden state will require grad
         if args.gradient_checkpointing:
