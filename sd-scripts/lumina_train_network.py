@@ -288,7 +288,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         # Unpack Gemma2 outputs
         gemma2_hidden_states, input_ids, gemma2_attn_mask = text_encoder_conds
 
-        model_pred_original = call_dit(
+        model_pred = call_dit(
             img=noisy_model_input,
             gemma2_hidden_states=gemma2_hidden_states,
             gemma2_attn_mask=gemma2_attn_mask,
@@ -450,7 +450,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         huber_c_downsampled = train_util.get_huber_threshold_if_needed(args, target_downsampled, noise_scheduler)
         loss_original = train_util.conditional_loss(model_pred_original.float(), target_original.float(), args.loss_type, "none", huber_c_original)
         loss_downsampled = train_util.conditional_loss(model_pred_downsampled.float(), target_downsampled.float(), args.loss_type, "none", huber_c_downsampled)
-        if weighting is not None:
+        if weighting_original and weighting_downsampled is not None:
             loss_original = loss_original * weighting_original
             loss_downsampled = loss_downsampled * weighting_downsampled
         if args.masked_loss or ("alpha_masks" in batch and batch["alpha_masks"] is not None):
