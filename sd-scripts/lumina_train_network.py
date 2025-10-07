@@ -305,8 +305,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         # 下采样latents
         latents_downsampled = apply_average_pool(latents.float(), factor=4)
         noise_downsampled = apply_average_pool(noise.float(), factor=4)
-        # get noisy model input and timesteps
-        noisy_model_input_downsampled = (1.0 - sigmas) * latents_downsampled + sigmas * noise_downsampled
+        noisy_model_input = (1 - (timesteps / 1000.0)) * noise + (timesteps * 1000.0) * latents
 
         # ensure the hidden state will require grad
         if args.gradient_checkpointing:
