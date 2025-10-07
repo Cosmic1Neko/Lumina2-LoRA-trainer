@@ -825,7 +825,6 @@ def get_noisy_model_input_and_timesteps(
     """
     bsz, _, h, w = latents.shape
     sigmas = None
-    u = None
 
     if args.timestep_sampling == "uniform" or args.timestep_sampling == "sigmoid":
         # Simple random t-based noise sampling
@@ -851,9 +850,9 @@ def get_noisy_model_input_and_timesteps(
         timesteps = timesteps * 1000.0
         noisy_model_input = (1 - t) * noise + t * latents
     elif args.timestep_sampling == "nextdit_shift":
-        u = torch.rand((bsz,), device=device) # u代表原始均匀分布
+        t = torch.rand((bsz,), device=device) 
         mu = get_lin_function()((h // 2) * (w // 2))
-        t = time_shift(mu, 1.0, u) # 使用 u 进行变换得到 t
+        t = time_shift(mu, 1.0, u)
 
         timesteps = t * 1000.0
         t = t.view(-1, 1, 1, 1)
@@ -877,7 +876,7 @@ def get_noisy_model_input_and_timesteps(
         )
         noisy_model_input = sigmas * latents + (1.0 - sigmas) * noise
 
-    return noisy_model_input.to(dtype), timesteps.to(dtype), sigmas, u
+    return noisy_model_input.to(dtype), timesteps.to(dtype), sigmas
 
 
 def apply_model_prediction_type(
