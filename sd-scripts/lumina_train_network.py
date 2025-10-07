@@ -477,7 +477,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         loss_weights = batch["loss_weights"]  # 各sampleごとのweight
         loss = (loss_original + loss_downsampled) * loss_weights
 
-        loss = self.post_process_loss(loss, args, timesteps, noise_scheduler)
+        #loss = self.post_process_loss(loss, args, timesteps, noise_scheduler)
 
         return loss.mean()
 
