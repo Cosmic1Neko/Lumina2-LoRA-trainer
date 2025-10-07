@@ -852,7 +852,7 @@ def get_noisy_model_input_and_timesteps(
     elif args.timestep_sampling == "nextdit_shift":
         t = torch.rand((bsz,), device=device) 
         mu = get_lin_function()((h // 2) * (w // 2))
-        t = time_shift(mu, 1.0, u)
+        t = time_shift(mu, 1.0, t)
 
         timesteps = t * 1000.0
         t = t.view(-1, 1, 1, 1)
