@@ -310,6 +310,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         mu_downsampled = lumina_train_util.get_lin_function()((h // 2) * (w // 2))
         t_downsampled = lumina_train_util.time_shift(mu_downsampled, 1.0, t = u)
         t_downsampled = t_downsampled.view(-1, 1, 1, 1)
+        timesteps_downsampled = t_downsampled * 1000.0
         noisy_model_input_downsampled = (1 - t_downsampled) * noise_downsampled + t_downsampled * latents_downsampled
 
         # ensure the hidden state will require grad
@@ -326,7 +327,7 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
             img=noisy_model_input_downsampled,
             gemma2_hidden_states=gemma2_hidden_states,
             gemma2_attn_mask=gemma2_attn_mask,
-            timesteps=timesteps,
+            timesteps=timesteps_downsampled,
         )
 
         # apply model prediction type
