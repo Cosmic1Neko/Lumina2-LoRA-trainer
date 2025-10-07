@@ -305,7 +305,12 @@ class LuminaNetworkTrainer(train_network.NetworkTrainer):
         # 下采样latents
         latents_downsampled = apply_average_pool(latents.float(), factor=4)
         noise_downsampled = apply_average_pool(noise.float(), factor=4)
-        noisy_model_input = (1 - (timesteps / 1000.0)) * noise + (timesteps * 1000.0) * latents
+        # 下采样的latents匹配"nextdit_shift"模式下的加噪模式
+        h, w = latents_downsampled.shape
+        mu = get_lin_function(y1=0.5, y2=1.15)((h // 2) * (w // 2))
+        t = time_shift(mu, 1.0, t = timesteps / 1000.0)
+        t = t.view(-1, 1, 1, 1)
+        noisy_model_input = (1 - t) * noise_downsampled + t * latents_downsampled
 
         # ensure the hidden state will require grad
         if args.gradient_checkpointing:
