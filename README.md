@@ -1,7 +1,8 @@
 # Lumina2-LoRA-trainer
-建议保留`train_lumina_24GLora.ps1`中除数据集外的参数设定，否则可能发生意料外的bug
 
 W.I.P
+
+建议保留`train_lumina_24GLora.ps1`中除数据集外的参数设定，否则可能发生意料外的bug
 
 
 # Features
