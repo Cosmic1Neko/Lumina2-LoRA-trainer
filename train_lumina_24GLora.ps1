@@ -143,6 +143,7 @@ $wandb_api_key = "9c3747c46705bd779c58799295e6bb6d3da5dc98" # wandbAPI KEY，用
 
 # 其他设置
 $enable_bucket = 1 #开启分桶
+$resize_interpolation = "lanczos"  # 可选: lanczos, nearest, bilinear, bicubic, area, box
 $bucket_reso_steps = 32
 $min_bucket_reso = 256 # arb min resolution | arb 最小分辨率
 $max_bucket_reso = 2048 # arb max resolution | arb 最大分辨率
@@ -757,6 +758,9 @@ else {
   }
   if ($resolution) {
     [void]$ext_args.Add("--resolution=$resolution")
+  }
+  if ($resize_interpolation) {  
+    [void]$ext_args.Add("--resize_interpolation=$resize_interpolation")  
   }
   if ($enable_bucket) {
     [void]$ext_args.Add("--enable_bucket")
