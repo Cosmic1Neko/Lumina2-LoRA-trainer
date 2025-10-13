@@ -842,6 +842,18 @@ class BaseDataset(torch.utils.data.Dataset):
                 if "<split>" in caption:
                     caption = random.choice(caption.split("<split>"))
 
+                drop_artist_character_rate = 0.1
+                # "#artist1, @character1, @character2\nxxxxx,xxxxx,xxxxxx."
+                if drop_artist_character_rate > 0:
+                    if random.random() < drop_artist_character_rate:
+                        # 检查是否包含换行符
+                        if "\n" in caption:
+                            # 只分割一次，分为“第一行”和“剩余部分”
+                            parts = caption.split("\n", 1)   # "#artist1, @character1, @character2" / "xxxxx,xxxxx,xxxxxx."
+                        if len(parts) > 1:
+                            # 丢弃第一行 (parts[0])，只保留剩余部分 (parts[1])
+                            caption = parts[1].strip()
+
                 # wildcard is like '{aaa|bbb|ccc...}'
                 # escape the curly braces like {{ or }}
                 replacer1 = "⦅"
