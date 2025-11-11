@@ -842,27 +842,41 @@ class BaseDataset(torch.utils.data.Dataset):
                 if "<split>" in caption:
                     caption = random.choice(caption.split("<split>"))
 
-                drop_artist_character_rate = 0.1
+                drop_artist_rate = 0.1
                 # "#artist1, @character1, @character2\nxxxxx,xxxxx,xxxxxx."
-                if drop_artist_character_rate > 0:
-                    if random.random() < drop_artist_character_rate:
-                        # 检查是否包含换行符
-                        if "\n" in caption:
-                            # 只分割一次，分为“第一行”和“剩余部分”
-                            parts = caption.split("\n", 1)   # "#artist1, @character1, @character2" / "xxxxx,xxxxx,xxxxxx."
-                        if len(parts) > 1:
-                            # 丢弃第一行 (parts[0])，只保留剩余部分 (parts[1])
-                            caption = parts[1].strip()
-
-                # wildcard is like '{aaa|bbb|ccc...}'
-                # escape the curly braces like {{ or }}
-                replacer1 = "⦅"
-                replacer2 = "⦆"
-                while replacer1 in caption or replacer2 in caption:
-                    replacer1 += "⦅"
-                    replacer2 += "⦆"
-
-                caption = caption.replace("{{", replacer1).replace("}}", replacer2)
+                if drop_artist_rate > 0 and random.random() < drop_artist_rate:
+                    # 检查是否包含换行符，以便我们能定位到第一行
+                    if "\n" in caption:
+                        parts = caption.split("\n", 1)
+                        first_line = parts[0]
+                        rest_of_caption = parts[1]
+                
+                        # 使用正则表达式移除 #artist 标签
+                        # 这个正则表达式会查找以 '#' 开头，后面跟着非逗号和非空格字符的模式
+                        # 这有助于确保我们只移除 artist 标签，即使它不是 #artist1
+                        # re.sub 会找到匹配的模式并将其替换为空字符串
+                        new_first_line = re.sub(r'#\S+', '', first_line).strip()
+                
+                        # 移除标签后，可能会在开头留下一个多余的逗号和空格，我们将其清理掉
+                        if new_first_line.startswith(','):
+                            new_first_line = new_first_line[1:].strip()
+                
+                        # 如果第一行还有内容，就把它和剩余部分重新组合起来
+                        if new_first_line:
+                            caption = new_first_line + "\n" + rest_of_caption
+                        else:
+                            # 如果第一行只剩下 artist 标签，那么丢弃后第一行就空了
+                            caption = rest_of_caption
+        
+                        # wildcard is like '{aaa|bbb|ccc...}'
+                        # escape the curly braces like {{ or }}
+                        replacer1 = "⦅"
+                        replacer2 = "⦆"
+                        while replacer1 in caption or replacer2 in caption:
+                            replacer1 += "⦅"
+                            replacer2 += "⦆"
+        
+                        caption = caption.replace("{{", replacer1).replace("}}", replacer2)
 
                 # replace the wildcard
                 def replace_wildcard(match):
