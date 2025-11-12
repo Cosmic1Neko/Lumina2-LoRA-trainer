@@ -907,11 +907,16 @@ class BaseDataset(torch.utils.data.Dataset):
                     fixed_tokens = [t.strip() for t in fixed_part.split(subset.caption_separator) if t.strip()]
                     flex_tokens = [t.strip() for t in flex_part.split(subset.caption_separator) if t.strip()]
                 else:
+                    """
                     tokens = [t.strip() for t in caption.strip().split(subset.caption_separator)]
                     flex_tokens = tokens[:]
                     if subset.keep_tokens > 0:
                         fixed_tokens = flex_tokens[: subset.keep_tokens]
                         flex_tokens = tokens[subset.keep_tokens :]
+                    """
+                    # 如果不包含分隔符，则不进行分割和打乱，直接使用原始caption  
+                    flex_tokens = []  # 保持为空，这样后续的shuffle不会影响  
+                    fixed_tokens = [caption.strip()]  # 将整个caption作为一个固定token
 
                 if subset.token_warmup_step < 1:  # 初回に上書きする
                     subset.token_warmup_step = math.floor(subset.token_warmup_step * self.max_train_steps)
