@@ -15,7 +15,7 @@ $disable_mmap_load_safetensors = 0 #在wsl下加载模型速度增加
 #lumina相关参数
 $train_mode = "lumina_lora"
 $gemma2 = "./clip/gemma_2_2b_bf16.safetensors"
-$gemma2_max_token_length = 512
+$gemma2_max_token_length = 768
 $use_flash_attn = 1
 $discrete_flow_shift = 6.0 # 时间步采样密度，越大说明模型在高噪声处的训练程度越高，只有timestep_sampling = "shift"时有用
 $timestep_sampling = "nextdit_shift"
