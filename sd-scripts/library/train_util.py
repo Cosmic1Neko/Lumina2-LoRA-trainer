@@ -843,7 +843,7 @@ class BaseDataset(torch.utils.data.Dataset):
                     caption = random.choice(caption.split("<split>"))
 
                 drop_artist_rate = 0.1
-                # "#artist1, @character1, @character2\nxxxxx,xxxxx,xxxxxx."
+                # "@artist1, #character1, #character2\nxxxxx,xxxxx,xxxxxx."
                 if drop_artist_rate > 0 and random.random() < drop_artist_rate:
                     # 检查是否包含换行符，以便我们能定位到第一行
                     if "\n" in caption:
@@ -851,11 +851,11 @@ class BaseDataset(torch.utils.data.Dataset):
                         first_line = parts[0]
                         rest_of_caption = parts[1]
                 
-                        # 使用正则表达式移除 #artist 标签
-                        # 这个正则表达式会查找以 '#' 开头，后面跟着非逗号和非空格字符的模式
-                        # 这有助于确保我们只移除 artist 标签，即使它不是 #artist1
+                        # 使用正则表达式移除 @artist 标签
+                        # 这个正则表达式会查找以 '@' 开头，后面跟着非逗号和非空格字符的模式
+                        # 这有助于确保我们只移除 artist 标签，即使它不是 @artist1
                         # re.sub 会找到匹配的模式并将其替换为空字符串
-                        new_first_line = re.sub(r'#\S+', '', first_line).strip()
+                        new_first_line = re.sub(r'@\S+', '', first_line).strip()
                 
                         # 移除标签后，可能会在开头留下一个多余的逗号和空格，我们将其清理掉
                         if new_first_line.startswith(','):
