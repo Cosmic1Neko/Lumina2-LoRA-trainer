@@ -35,8 +35,8 @@ $gradient_checkpointing = 1 #梯度检查，开启后可节约显存，但是速
 $gradient_accumulation_steps = 16 # 梯度累加数量，变相放大batchsize的倍数
 $optimizer_accumulation_steps = 0
 
-$network_dim = 64 # network dim | 常用 4~128，不是越大越好
-$network_alpha = 64 # network alpha | 常用与 network_dim 相同的值或者采用较小的值，如 network_dim的一半 防止下溢。默认值为 1，使用较小的 alpha 需要提升学习率。
+$network_dim = 128 # network dim | 常用 4~128，不是越大越好
+$network_alpha = 128 # network alpha | 常用与 network_dim 相同的值或者采用较小的值，如 network_dim的一半 防止下溢。默认值为 1，使用较小的 alpha 需要提升学习率。
 
 $train_unet_only = 1 # train U-Net only | 仅训练 U-Net，开启这个会牺牲效果大幅减少显存使用。6G显存可以开启
 $train_text_encoder_only = 0 # train Text Encoder only | 仅训练 文本编码器
