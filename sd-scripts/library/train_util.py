@@ -868,15 +868,15 @@ class BaseDataset(torch.utils.data.Dataset):
                             # 如果第一行只剩下 artist 标签，那么丢弃后第一行就空了
                             caption = rest_of_caption
         
-                        # wildcard is like '{aaa|bbb|ccc...}'
-                        # escape the curly braces like {{ or }}
-                        replacer1 = "⦅"
-                        replacer2 = "⦆"
-                        while replacer1 in caption or replacer2 in caption:
-                            replacer1 += "⦅"
-                            replacer2 += "⦆"
+                # wildcard is like '{aaa|bbb|ccc...}'
+                # escape the curly braces like {{ or }}
+                replacer1 = "⦅"
+                replacer2 = "⦆"
+                while replacer1 in caption or replacer2 in caption:
+                    replacer1 += "⦅"
+                    replacer2 += "⦆"
         
-                        caption = caption.replace("{{", replacer1).replace("}}", replacer2)
+                caption = caption.replace("{{", replacer1).replace("}}", replacer2)
 
                 # replace the wildcard
                 def replace_wildcard(match):
