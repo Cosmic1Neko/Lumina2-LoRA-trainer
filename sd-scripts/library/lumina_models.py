@@ -140,7 +140,7 @@ class LuminaParams:
             n_heads=24,
             n_kv_heads=8,
             axes_dims=[32, 32, 32],
-            axes_lens=[300, 512, 512],
+            axes_lens=[1280 + 50, 512, 512],
             qk_norm=True,
             cap_feat_dim=2304,  # Gemma 2 hidden_size
         )
