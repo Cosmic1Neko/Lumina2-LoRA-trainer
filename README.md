@@ -1,6 +1,6 @@
 # Lumina2-LoRA-trainer
-建议保留`train_lumina_24GLora.ps1`中除数据集外的参数设定，否则可能发生意料外的bug
-Source[https://space.bilibili.com/219296]
+建议保留`train_lumina_24GLora.ps1`中除数据集外的参数设定，否则可能发生意料外的bug<br>
+[Source](https://space.bilibili.com/219296)
 
 # Features
 1. 使用[EQ-VAE](https://huggingface.co/Anzhc/MS-LC-EQ-D-VR_VAE)替换原来的Flux VAE，且修改VAE nn.conv2d的padding_mode为"reflect" `sd-scripts/library/flux_models.py`https://github.com/Cosmic1Neko/Lumina2-LoRA-trainer/blob/d301b7fbffe1c3b3025a4c4713d6ac93edf8ab6a/sd-scripts/library/flux_models.py#L326-L330
