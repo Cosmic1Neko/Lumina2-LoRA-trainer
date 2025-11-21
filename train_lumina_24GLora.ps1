@@ -146,7 +146,7 @@ $sample_prompts = "./toml/prompt.txt" #prompt文件路径
 $sample_sampler = "euler" #采样器 'ddim', 'pndm', 'heun', 'dpmsolver', 'dpmsolver++', 'dpmsingle', 'k_lms', 'k_euler', 'k_euler_a', 'k_dpm_2', 'k_dpm_2_a'
 
 #wandb 日志同步
-$wandb_api_key = "153aa18816fdbad58f285627f8007c89279bf5a6" # wandbAPI KEY，用于登录
+$wandb_api_key = "" # wandbAPI KEY，用于登录
 
 # 其他设置
 $enable_bucket = 1 #开启分桶
@@ -262,7 +262,7 @@ elseif (Test-Path "./.venv/bin/activate") {
 $Env:HF_HOME = "huggingface"
 $Env:XFORMERS_FORCE_DISABLE_TRITON = "1"
 $Env:HF_ENDPOINT = "https://hf-mirror.com"
-$Env:HF_TOKEN = "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"
+$Env:HF_TOKEN = ""
 $network_module = "networks.lora"
 $ext_args = [System.Collections.ArrayList]::new()
 $launch_args = [System.Collections.ArrayList]::new()
