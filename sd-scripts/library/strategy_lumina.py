@@ -35,7 +35,7 @@ class LuminaTokenizeStrategy(TokenizeStrategy):
         if system_prompt is None:
             system_prompt = ""
         system_prompt_special_token = "<Prompt Start>"
-        system_prompt = f"{system_prompt} {system_prompt_special_token} " if system_prompt else ""
+        system_prompt = f"{system_prompt} {system_prompt_special_token}\n" if system_prompt else ""
         self.system_prompt = system_prompt
 
         if max_length is None:
