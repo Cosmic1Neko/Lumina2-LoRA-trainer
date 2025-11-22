@@ -492,9 +492,9 @@ def get_lin_function(
     Args:
         image_seq_len,
         x1 base_seq_len: int = 256,
-        y2 max_seq_len: int = 8192,
+        y2 max_seq_len: int = 4096,
         y1 base_shift: float = 0.5,
-        y2 max_shift: float = 1.84,
+        y2 max_shift: float = 1.15,
 
     Return:
         Callable[[float], float]: linear function
