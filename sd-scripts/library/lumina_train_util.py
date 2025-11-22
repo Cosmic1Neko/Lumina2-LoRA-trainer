@@ -484,7 +484,7 @@ def time_shift(mu: float, sigma: float, t: torch.Tensor):
 
 
 def get_lin_function(
-    x1: float = 256, x2: float = 8192, y1: float = 0.5, y2: float = 1.84
+    x1: float = 256, x2: float = 4095, y1: float = 0.5, y2: float = 1.15
 ) -> Callable[[float], float]:
     """
     Get linear function
