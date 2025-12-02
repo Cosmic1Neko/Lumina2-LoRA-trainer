@@ -11,6 +11,7 @@ tf32_on()
 from library import sdxl_model_util, sdxl_train_util, strategy_base, strategy_sd, strategy_sdxl, train_util
 import train_network
 from library.utils import setup_logging
+import math
 
 setup_logging()
 import logging
@@ -29,6 +30,20 @@ def apply_average_pool(latent, factor=4):
         torch.Tensor: Downsampled latent tensor.
     """
     return torch.nn.functional.avg_pool2d(latent, kernel_size=factor, stride=factor)
+
+def time_shift(mu: float, sigma: float, t: torch.Tensor):
+    t = 1 - t
+    t = math.exp(mu) / (math.exp(mu) + (1 / t - 1) ** sigma)
+    t = 1 - t
+    return t
+
+def get_lin_function(
+    x1: float = 256, x2: float = 4096, y1: float = 0.5, y2: float = 1.15
+):
+    # 线性插值函数，用于根据分辨率计算 mu
+    m = (y2 - y1) / (x2 - x1)
+    b = y1 - m * x1
+    return lambda x: m * x + b
 
 
 class SdxlNetworkTrainer(train_network.NetworkTrainer):
@@ -255,7 +270,34 @@ class SdxlNetworkTrainer(train_network.NetworkTrainer):
     ):
         # Sample noise, sample a random timestep for each image, and add noise to the latents,
         # with noise offset and/or multires noise if specified
-        noise, noisy_latents, timesteps = train_util.get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents)
+        # noise, noisy_latents, timesteps = train_util.get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents)
+        use_nextdit_shift = True
+        if use_nextdit_shift:
+            # 1. 获取 Batch Size 和 Latent 尺寸
+            bsz, _, h, w = latents.shape
+            
+            # 2. 计算 mu
+            num_patches = (h * w) / 4.0 # 对应于DiT patch后的token数量
+            mu = get_lin_function()(num_patches)
+            
+            # 3. 采样均匀分布 t [0, 1]
+            u = torch.rand((bsz,), device=latents.device)
+            
+            # 4. 应用 Shift
+            # time_shift 返回的是 "clean level" (1=clean, 0=noise) 的偏移分布
+            u = time_shift(mu, 1.0, u)
+            
+            # 5. 转换为 SDXL 时间步 (0=clean, 1000=noise)
+            t = 1.0 - u
+            timesteps = t * 1000.0
+            timesteps = timesteps.long().clamp(0, 999) # 转换为整数索引
+            
+            # 6. 加噪
+            noise = torch.randn_like(latents)
+            noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
+        else:
+            # 原始逻辑
+            noise, noisy_latents, timesteps = train_util.get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents)
 
         # ensure the hidden state will require grad
         if args.gradient_checkpointing:
