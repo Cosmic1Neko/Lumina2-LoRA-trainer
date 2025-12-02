@@ -128,7 +128,7 @@ Write-Output "安装程序所需依赖 (已进行国内加速，若在国外或�
 & $uv pip install -U hatchling editables torch==2.8.0
 Check "torch安装失败。"
 
-& $uv pip sync ./requirements-uv.txt --index-strategy unsafe-best-match
+& $uv pip sync ./requirements-uv-linux.txt --index-strategy unsafe-best-match
 Check "环境安装失败。"
 
 & $uv pip install -U --pre lycoris-lora -i https://pypi.org/simple torch==2.8.0

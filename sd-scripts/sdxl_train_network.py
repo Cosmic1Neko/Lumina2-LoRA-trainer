@@ -17,6 +17,19 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def apply_average_pool(latent, factor=4):
+    """
+    Apply average pooling to downsample the latent.
+
+    Args:
+        latent (torch.Tensor): Latent tensor with shape (1, C, H, W).
+        factor (int): Downsampling factor.
+
+    Returns:
+        torch.Tensor: Downsampled latent tensor.
+    """
+    return torch.nn.functional.avg_pool2d(latent, kernel_size=factor, stride=factor)
+
 
 class SdxlNetworkTrainer(train_network.NetworkTrainer):
     def __init__(self):
@@ -216,6 +229,236 @@ class SdxlNetworkTrainer(train_network.NetworkTrainer):
 
     def sample_images(self, accelerator, args, epoch, global_step, device, vae, tokenizer, text_encoder, unet):
         sdxl_train_util.sample_images(accelerator, args, epoch, global_step, device, vae, tokenizer, text_encoder, unet)
+
+    def get_noise_scheduler(self, args: argparse.Namespace, device: torch.device) -> Any:
+        noise_scheduler = DDPMScheduler(
+            beta_start=0.00085, beta_end=0.012, beta_schedule="squaredcos_cap_v2", num_train_timesteps=1000, clip_sample=False
+        )
+        prepare_scheduler_for_custom_training(noise_scheduler, device)
+        if args.zero_terminal_snr:
+            custom_train_functions.fix_noise_scheduler_betas_for_zero_terminal_snr(noise_scheduler)
+        return noise_scheduler
+    
+    def get_noise_pred_and_target(
+        self,
+        args,
+        accelerator,
+        noise_scheduler,
+        latents,
+        batch,
+        text_encoder_conds,
+        unet,
+        network,
+        weight_dtype,
+        train_unet,
+        is_train=True,
+    ):
+        # Sample noise, sample a random timestep for each image, and add noise to the latents,
+        # with noise offset and/or multires noise if specified
+        noise, noisy_latents, timesteps = train_util.get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents)
+
+        # ensure the hidden state will require grad
+        if args.gradient_checkpointing:
+            for x in noisy_latents:
+                x.requires_grad_(True)
+            for t in text_encoder_conds:
+                t.requires_grad_(True)
+
+        # Predict the noise residual
+        with torch.set_grad_enabled(is_train), accelerator.autocast():
+            noise_pred = self.call_unet(
+                args,
+                accelerator,
+                unet,
+                noisy_latents.requires_grad_(train_unet),
+                timesteps,
+                text_encoder_conds,
+                batch,
+                weight_dtype,
+            )
+
+        if args.v_parameterization:
+            # v-parameterization training
+            target = noise_scheduler.get_velocity(latents, noise, timesteps)
+        else:
+            target = noise
+
+        # differential output preservation
+        if "custom_attributes" in batch:
+            diff_output_pr_indices = []
+            for i, custom_attributes in enumerate(batch["custom_attributes"]):
+                if "diff_output_preservation" in custom_attributes and custom_attributes["diff_output_preservation"]:
+                    diff_output_pr_indices.append(i)
+
+            if len(diff_output_pr_indices) > 0:
+                network.set_multiplier(0.0)
+                with torch.no_grad(), accelerator.autocast():
+                    noise_pred_prior = self.call_unet(
+                        args,
+                        accelerator,
+                        unet,
+                        noisy_latents,
+                        timesteps,
+                        text_encoder_conds,
+                        batch,
+                        weight_dtype,
+                        indices=diff_output_pr_indices,
+                    )
+                network.set_multiplier(1.0)  # may be overwritten by "network_multipliers" in the next step
+                target[diff_output_pr_indices] = noise_pred_prior.to(target.dtype)
+
+        return noise_pred, target, timesteps, None
+
+    def process_batch(
+        self,
+        batch,
+        text_encoders,
+        unet,
+        network,
+        vae,
+        noise_scheduler,
+        vae_dtype,
+        weight_dtype,
+        accelerator,
+        args,
+        text_encoding_strategy: strategy_base.TextEncodingStrategy,
+        tokenize_strategy: strategy_base.TokenizeStrategy,
+        is_train=True,
+        train_text_encoder=True,
+        train_unet=True,
+    ) -> torch.Tensor:
+        """
+        Process a batch for the network
+        """
+        with torch.no_grad():
+            if "latents" in batch and batch["latents"] is not None:
+                latents = typing.cast(torch.FloatTensor, batch["latents"].to(accelerator.device))
+            else:
+                # latentに変換
+                if args.vae_batch_size is None or len(batch["images"]) <= args.vae_batch_size:
+                    latents = self.encode_images_to_latents(args, vae, batch["images"].to(accelerator.device, dtype=vae_dtype))
+                else:
+                    chunks = [
+                        batch["images"][i : i + args.vae_batch_size] for i in range(0, len(batch["images"]), args.vae_batch_size)
+                    ]
+                    list_latents = []
+                    for chunk in chunks:
+                        with torch.no_grad():
+                            chunk = self.encode_images_to_latents(args, vae, chunk.to(accelerator.device, dtype=vae_dtype))
+                            list_latents.append(chunk)
+                    latents = torch.cat(list_latents, dim=0)
+
+                # NaNが含まれていれば警告を表示し0に置き換える
+                if torch.any(torch.isnan(latents)):
+                    accelerator.print("NaN found in latents, replacing with zeros")
+                    latents = typing.cast(torch.FloatTensor, torch.nan_to_num(latents, 0, out=latents))
+
+            latents = self.shift_scale_latents(args, latents)
+
+        text_encoder_conds = []
+        text_encoder_outputs_list = batch.get("text_encoder_outputs_list", None)
+        if text_encoder_outputs_list is not None:
+            text_encoder_conds = text_encoder_outputs_list  # List of text encoder outputs
+
+        if len(text_encoder_conds) == 0 or text_encoder_conds[0] is None or train_text_encoder:
+            # TODO this does not work if 'some text_encoders are trained' and 'some are not and not cached'
+            with torch.set_grad_enabled(is_train and train_text_encoder), accelerator.autocast():
+                # Get the text embedding for conditioning
+                if args.weighted_captions:
+                    input_ids_list, weights_list = tokenize_strategy.tokenize_with_weights(batch["captions"])
+                    encoded_text_encoder_conds = text_encoding_strategy.encode_tokens_with_weights(
+                        tokenize_strategy,
+                        self.get_models_for_text_encoding(args, accelerator, text_encoders),
+                        input_ids_list,
+                        weights_list,
+                    )
+                else:
+                    input_ids = [ids.to(accelerator.device) for ids in batch["input_ids_list"]]
+                    encoded_text_encoder_conds = text_encoding_strategy.encode_tokens(
+                        tokenize_strategy,
+                        self.get_models_for_text_encoding(args, accelerator, text_encoders),
+                        input_ids,
+                    )
+                if args.full_fp16:
+                    encoded_text_encoder_conds = [c.to(weight_dtype) for c in encoded_text_encoder_conds]
+
+            # if text_encoder_conds is not cached, use encoded_text_encoder_conds
+            if len(text_encoder_conds) == 0:
+                text_encoder_conds = encoded_text_encoder_conds
+            else:
+                # if encoded_text_encoder_conds is not None, update cached text_encoder_conds
+                for i in range(len(encoded_text_encoder_conds)):
+                    if encoded_text_encoder_conds[i] is not None:
+                        text_encoder_conds[i] = encoded_text_encoder_conds[i]
+
+        """
+        # sample noise, call unet, get target
+        noise_pred, target, timesteps, weighting = self.get_noise_pred_and_target(
+            args,
+            accelerator,
+            noise_scheduler,
+            latents,
+            batch,
+            text_encoder_conds,
+            unet,
+            network,
+            weight_dtype,
+            train_unet,
+            is_train=is_train,
+        )
+        """
+        
+        # sample noise, call unet, get target
+        # 原始latents
+        model_pred_original, target_original, timesteps_original, weighting_original = self.get_noise_pred_and_target(
+            args,
+            accelerator,
+            noise_scheduler,
+            latents,
+            batch,
+            text_encoder_conds,
+            unet,
+            network,
+            weight_dtype,
+            train_unet,
+            is_train=is_train,
+        )
+
+        # 下采样的latents
+        latents_downsampled = apply_average_pool(latents.float(), factor=4)
+        model_pred_downsampled, target_downsampled, timesteps_downsampled, weighting_downsampled = self.get_noise_pred_and_target(
+            args,
+            accelerator,
+            noise_scheduler,
+            latents_downsampled,
+            batch,
+            text_encoder_conds,
+            unet,
+            network,
+            weight_dtype,
+            train_unet,
+            is_train=is_train,
+        )
+
+        huber_c_original = train_util.get_huber_threshold_if_needed(args, timesteps_original, noise_scheduler)
+        huber_c_downsampled = train_util.get_huber_threshold_if_needed(args, timesteps_downsampled, noise_scheduler)
+        loss_original = train_util.conditional_loss(model_pred_original.float(), target_original.float(), args.loss_type, "none", huber_c_original)
+        loss_downsampled = train_util.conditional_loss(model_pred_downsampled.float(), target_downsampled.float(), args.loss_type, "none", huber_c_downsampled)
+        if weighting_original is not None and weighting_downsampled is not None:
+            loss_original = loss_original * weighting_original
+            loss_downsampled = loss_downsampled * weighting_downsampled
+        if args.masked_loss or ("alpha_masks" in batch and batch["alpha_masks"] is not None):
+            loss_original = apply_masked_loss(loss_original, batch)
+            loss_downsampled = apply_masked_loss(loss_downsampled, batch)
+        loss_original = loss_original.mean([1, 2, 3])
+        loss_downsampled = loss_downsampled.mean([1, 2, 3])
+
+        loss_weights = batch["loss_weights"]  # 各sampleごとのweight
+        loss = (loss_original + loss_downsampled) * loss_weights
+
+        #loss = self.post_process_loss(loss, args, timesteps, noise_scheduler)
+
+        return loss.mean()
 
 
 def setup_parser() -> argparse.ArgumentParser:

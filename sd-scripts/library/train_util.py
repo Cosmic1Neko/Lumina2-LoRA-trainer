@@ -842,7 +842,7 @@ class BaseDataset(torch.utils.data.Dataset):
                 if "<split>" in caption:
                     caption = random.choice(caption.split("<split>"))
 
-                drop_artist_rate = 0.1
+                drop_artist_rate = 0.15
                 # "@artist1, #character1, #character2\nxxxxx,xxxxx,xxxxxx."
                 if drop_artist_rate > 0 and random.random() < drop_artist_rate:
                     # 检查是否包含换行符，以便我们能定位到第一行

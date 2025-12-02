@@ -1,38 +1,49 @@
 # LoRA train script by @Akegarasu modify by @bdsqlsz
-
+# export PIP_CACHE_DIR="/root/autodl-tmp/cache"
+# source /etc/network_turbo
+# pwsh -File train_lumina_24GLora.ps1 2>&1 | tee logs.txt
+# .venv/bin/pip install flash-attn==2.8.2 --no-build-isolation
+# source .venv/bin/activate
+# accelerate config
+# .venv/bin/pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp311-cp311-linux_x86_64.whl
+# .venv/bin/pip
+# .venv/bin/pip install diffusers
+# .venv/bin/pip install huggingface-hub==0.31.2
+# .venv/bin/pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
+# .venv/bin/pip install xformers==0.0.32.post2
 # Train data path | 设置训练用模型、图片
-$pretrained_model = "./Stable-diffusion/lumina/lumina_2_model_bf16.safetensors" # base model path | 底模路径
-$vae = "./VAE/ae.sft" # 使用Flux EQ-VAE版本 (Anzhc/MS-LC-EQ-D-VR_VAE/Pad Flux EQ v2 B1.safetensors)
-$train_data_dir = "./train/qinglong/train" # train dataset path | 训练数据集路径
-$in_json = "./train/metadata.json"
+$pretrained_model = "/root/autodl-tmp/model/neta-lumina-alpha-aes-full-a5n-ep2-s58714.safetensors" # base model path | 底模路径
+$vae = "/root/autodl-tmp/model/vae/Pad-Flux-EQ-v2-B1.safetensors"
+$train_data_dir = "/root/autodl-tmp/datasets" # train dataset path | 训练数据集路径
+#$in_json = "/root/autodl-tmp/metadata.json"
 $network_weights = "" # pretrained weights for LoRA network | 若需要从已有的 LoRA 模型上继续训练，请填写 LoRA 模型路径。
 $network_multiplier = 1.0 # lora权重倍数，默认1.0
-$training_comment = "this LoRA model created from bdsqlsz by bdsqlsz'script" # training_comment | 训练介绍，可以写作者名或者使用触发关键词
+$training_comment = "this LoRA model created by cosmicneko" # training_comment | 训练介绍，可以写作者名或者使用触发关键词
 $dataset_class = ""
 #$dataset_config = "./toml/datasets_qinglong.toml" # dataset config | 数据集配置文件路径
 $disable_mmap_load_safetensors = 0 #在wsl下加载模型速度增加
 
 #lumina相关参数
 $train_mode = "lumina_lora"
-$gemma2 = "./clip/gemma_2_2b_bf16.safetensors"
-$gemma2_max_token_length = 1024
+$gemma2 = "/root/autodl-tmp/model/clip/gemma_2_2b_fp16.safetensors"
+$gemma2_max_token_length = 1280
 $use_flash_attn = 1
 $discrete_flow_shift = 6.0 # 时间步采样密度，越大说明模型在高噪声处的训练程度越高，只有timestep_sampling = "shift"时有用
 $timestep_sampling = "nextdit_shift"
 $model_prediction_type = "raw"
 $cfg_trunc = 0.25
 $renorm_cfg = 1.0
-$system_prompt = "You are an assistant designed to generate high-quality images based on user prompts. <Prompt Start>\n"
+$system_prompt = "You are an assistant designed to generate anime images based on textual prompts."
 
 
 # Train related params | 训练相关参数
-$resolution = "1280,1280" # image resolution w,h. 图片分辨率，宽,高。支持非正方形，但必须是 64 倍数。
-$batch_size = 2 # batch size 一次性训练图片批处理数量，根据显卡质量对应调高。
-$max_train_epoches = 20 # max train epoches | 最大训练 epoch
+$resolution = "1024,1024" # image resolution w,h. 图片分辨率，宽,高。支持非正方形，但必须是 64 倍数。
+$batch_size = 4 # batch size 一次性训练图片批处理数量，根据显卡质量对应调高。
+$max_train_epoches = 10 # max train epoches | 最大训练epoch
 $save_every_n_epochs = 1 # save every n epochs | 每 N 个 epoch 保存一次
 
 $gradient_checkpointing = 1 #梯度检查，开启后可节约显存，但是速度变慢
-$gradient_accumulation_steps = 16 # 梯度累加数量，变相放大batchsize的倍数
+$gradient_accumulation_steps = 8 # 梯度累加数量，变相放大batchsize的倍数
 $optimizer_accumulation_steps = 0
 
 $network_dim = 128 # network dim | 常用 4~128，不是越大越好
@@ -41,7 +52,7 @@ $network_alpha = 128 # network alpha | 常用与 network_dim 相同的值或者�
 $train_unet_only = 1 # train U-Net only | 仅训练 U-Net，开启这个会牺牲效果大幅减少显存使用。6G显存可以开启
 $train_text_encoder_only = 0 # train Text Encoder only | 仅训练 文本编码器
 
-$seed = 1026 # reproducable seed | 设置跑测试用的种子，输入一个prompt和这个种子大概率得到训练图。可以用来试触发关键词
+$seed = 1344 # reproducable seed | 设置跑测试用的种子，输入一个prompt和这个种子大概率得到训练图。可以用来试触发关键词
 
 #LORA_PLUS
 $enable_lora_plus = 0
@@ -53,7 +64,7 @@ $loraplus_text_encoder_lr_ratio = 4
 $network_dropout = 0 # dropout 是机器学习中防止神经网络过拟合的技术，建议0.1~0.3 
 $scale_weight_norms = 0 #配合 dropout 使用，最大范数约束，推荐1.0
 $rank_dropout = 0 #lora模型独创，rank级别的dropout，推荐0.1~0.3，未测试过多
-$module_dropout = 0 #lora模型独创，module级别的dropout(就是分层模块的)，推荐0.1~0.3，未测试过多
+$module_dropout = 0 #lora模型独创，module级别的 dropout(就是分层模块的)，推荐0.1~0.3，未测试过多
 $caption_dropout_every_n_epochs = 0 #dropout caption
 $caption_dropout_rate = 0.1 #0~1
 $caption_tag_dropout_rate = 0 #0~1
@@ -66,9 +77,9 @@ $loss_type = "l2" #损失函数类型，`smooth_l1`、`huber`、`l2`(就是MSE)
 
 
 # Learning rate | 学习率
-$lr = "1e-4"
-$unet_lr = "1e-4"
-$text_encoder_lr = "1e-5"
+$lr = "2e-4"
+$unet_lr = "2e-4"
+$text_encoder_lr = "0"
 $lr_scheduler = "cosine_with_min_lr"
 # "linear", "cosine", "cosine_with_restarts", "polynomial", "constant", "constant_with_warmup" | PyTorch自带6种动态学习率函数
 # constant，常量不变, constant_with_warmup 线性增加后保持常量不变, linear 线性增加线性减少, polynomial 线性增加后平滑衰减, cosine 余弦波曲线, cosine_with_restarts 余弦波硬重启，瞬间最大值。
@@ -113,17 +124,17 @@ $caption_suffix = "" #打标后缀，可以加入相机镜头如果需要，例�
 $alpha_mask = 0 #是否使用透明蒙版检测
 
 # Output settings | 输出设置
-$output_name = "lumina" # output model name | 模型保存名称
+$output_name = "NetaLumina" # output model name | 模型保存名称
 $save_model_as = "safetensors" # model save ext | 模型保存格式 ckpt, pt, safetensors
 $mixed_precision = "bf16" # 默认fp16,no,bf16可选
 $save_precision = "bf16" # 默认fp16,fp32,bf16可选
 $full_fp16 = 0 #开启全fp16模式，自动混合精度变为fp16，更节约显存
-$full_bf16 = 1 #选择全bf16训练，必须30系以上显卡。
+$full_bf16 = 0 #选择全bf16训练，必须30系以上显卡。
 $fp8_base = 0 #开启fp8模式，更节约显存，实验性功能
 $fp8_base_unet = 0 #开启fp8纯uent模式，更节约显存，实验性功能
 
 # Resume training state | 恢复训练设置
-$save_state = 0 # save training state | 保存训练状态 名称类似于 <output_name>-??????-state ?????? 表示 epoch 数
+$save_state = 1 # save training state | 保存训练状态 名称类似于 <output_name>-??????-state ?????? 表示 epoch 数
 $resume = "" # resume from state | 从某个状态文件夹中恢复训练 需配合上方参数同时使用 由于规范文件限制 epoch 数和全局步数不会保存 即使恢复时它们也从 1 开始 与 network_weights 的具体实现操作并不一致
 $save_state_on_train_end = 0 #只在训练结束最后保存训练状态
 
@@ -135,26 +146,26 @@ $config_file = "./toml/" + $output_name + ".toml" #输出文件保存目录和�
 $enable_sample = 1 #1开启出图，0禁用
 $sample_at_first = 1 #是否在训练开始时就出图
 $sample_every_n_epochs = 1 #每n个epoch出一次图
-$sample_prompts = "./toml/qinglong.txt" #prompt文件路径
+$sample_prompts = "./toml/prompt.txt" #prompt文件路径
 $sample_sampler = "euler" #采样器 'ddim', 'pndm', 'heun', 'dpmsolver', 'dpmsolver++', 'dpmsingle', 'k_lms', 'k_euler', 'k_euler_a', 'k_dpm_2', 'k_dpm_2_a'
 
 #wandb 日志同步
-$wandb_api_key = "9c3747c46705bd779c58799295e6bb6d3da5dc98" # wandbAPI KEY，用于登录
+$wandb_api_key = "" # wandbAPI KEY，用于登录
 
 # 其他设置
 $enable_bucket = 1 #开启分桶
 $resize_interpolation = "lanczos"  # 可选: lanczos, nearest, bilinear, bicubic, area, box
 $bucket_reso_steps = 32
-$min_bucket_reso = 256 # arb min resolution | arb 最小分辨率
+$min_bucket_reso = 512 # arb min resolution | arb 最小分辨率
 $max_bucket_reso = 2048 # arb max resolution | arb 最大分辨率
 $bucket_no_upscale = 1 #分桶不放大
 $persistent_workers = 4 # makes workers persistent, further reduces/eliminates the lag in between epochs. however it may increase memory usage | 跑的更快，吃内存。大概能提速2倍
 $vae_batch_size = 4 #vae批处理大小，2-4
-$clip_skip = 2 # clip skip | 玄学 一般用 2
+$clip_skip = 1 # clip skip | 玄学 一般用 2
 $cache_latents = 0 #缓存潜变量
 $cache_latents_to_disk = 0 # 缓存图片存盘，下次训练不需要重新缓存，1开启0禁用
 $torch_compile = 1 #使用torch编译功能，需要版本大于2.1
-$dynamo_backend = "inductor" #"eager", "aot_eager", "inductor","aot_ts_nvfuser","nvprims_nvfuser","cudagraphs","aot_torchxla_trace_once"用于训练
+$dynamo_backend = "aot_eager" #"eager", "aot_eager", "inductor","aot_ts_nvfuser","nvprims_nvfuser","cudagraphs","aot_torchxla_trace_once"用于训练
 
 #lycoris组件
 $enable_lycoris = 1 # 开启lycoris
@@ -173,7 +184,7 @@ $algo = "lora" # algo参数，指定训练lycoris模型种类，
 #dim 与区块大小相对应：我们在这里固定了区块大小而不是区块数量，以使其与 LoRA 更具可比性。
 
 $dropout = 0 #lycoris专用dropout
-$preset = "full" #预设训练模块配置
+$preset = "unet-transformer-only" #预设训练模块配置
 #full: default preset, train all the layers in the UNet and CLIP|默认设置，训练所有Unet和Clip层
 #full-lin: full but skip convolutional layers|跳过卷积层
 #attn-mlp: train all the transformer block.|kohya配置，训练所有transformer模块
@@ -210,7 +221,7 @@ $no_token_padding = 0 #不进行分词器填充
 
 
 #多卡设置
-$multi_gpu = 0                         #multi gpu | 多显卡训练开关，0关1开， 该参数仅限在显卡数 >= 2 使用
+$multi_gpu = 1                        #multi gpu | 多显卡训练开关，0关1开， 该参数仅限在显卡数 >= 2 使用
 $highvram = 0                            #高显存模式，开启后会尽量使用显存
 $deepspeed = 0                         #deepspeed | 使用deepspeed训练，0关1开， 该参数仅限在显卡数 >= 2 使用
 $zero_stage = 2                        #zero stage | zero stage 0,1,2,3,阶段2用于训练 该参数仅限在显卡数 >= 2 使用
@@ -220,6 +231,15 @@ $fp16_master_weights_and_gradients = 0 #fp16 master weights and gradients | fp16
 $ddp_timeout = 120 #ddp timeout | ddp超时时间，单位秒， 该参数仅限在显卡数 >= 2 使用
 $ddp_gradient_as_bucket_view = 1 #ddp gradient as bucket view | ddp梯度作为桶视图，0关1开， 该参数仅限在显卡数 >= 2 使用
 $ddp_static_graph = 1 #ddp static graph | ddp静态图，0关1开， 该参数仅限在显卡数 >= 2 使用
+
+
+$gradfilter_ema_alpha = 0
+$gradfilter_ema_lamb = 0
+$min_snr_gamma = 0
+$ip_noise_gamma = 0
+$ae = $vae
+$cache_text_encoder_outputs = 0
+$cache_text_encoder_outputs_to_disk = 0
 
 # ============= DO NOT MODIFY CONTENTS BELOW | 请勿修改下方内容 =====================
 # Activate python venv
@@ -246,7 +266,7 @@ elseif (Test-Path "./.venv/bin/activate") {
 $Env:HF_HOME = "huggingface"
 $Env:XFORMERS_FORCE_DISABLE_TRITON = "1"
 $Env:HF_ENDPOINT = "https://hf-mirror.com"
-$Env:HF_TOKEN = "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"
+$Env:HF_TOKEN = "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"
 $network_module = "networks.lora"
 $ext_args = [System.Collections.ArrayList]::new()
 $launch_args = [System.Collections.ArrayList]::new()
@@ -1051,15 +1071,16 @@ if ($optimizer_type -ilike "DAdapt*") {
 if ($optimizer_type -ieq "Lion" -or $optimizer_type -ieq "Lion8bit" -or $optimizer_type -ieq "PagedLion8bit") {
   [void]$ext_args.Add("--optimizer_type=$optimizer_type")
   [void]$ext_args.Add("--optimizer_args")
-  [void]$ext_args.Add("weight_decay=0.01")
-  [void]$ext_args.Add("betas=.95,.98")
+  [void]$ext_args.Add("weight_decay=0.001")
+  [void]$ext_args.Add("betas=.9,.99")
 }
 
 if ($optimizer_type -ieq "AdamW8bit") {
   $optimizer_type = ""
   [void]$ext_args.Add("--use_8bit_adam")
   [void]$ext_args.Add("--optimizer_args")
-  [void]$ext_args.Add("weight_decay=0.01")
+  [void]$ext_args.Add("weight_decay=0.0001")
+  [void]$ext_args.Add("betas=.9,.99")
 }
 
 if ($optimizer_type -ieq "PagedAdamW8bit" -or $optimizer_type -ieq "AdamW") {
@@ -1412,9 +1433,16 @@ if ($caption_tag_dropout_rate) {
   [void]$ext_args.Add("--caption_tag_dropout_rate=$caption_tag_dropout_rate")
 }
 
+#$launch_args += "--mixed_precision=bf16"
+#$launch_args += "--dynamo_backend=eager"
+$Env:CUDA_LAUNCH_BLOCKING=1
+
+Write-Output $launch_args
+Write-Output $ext_args
+
 # run train
-python -m accelerate.commands.launch --num_cpu_threads_per_process=8 $launch_args "./sd-scripts/$laungh_script.py" `
-  --output_dir="./output" `
+python -m accelerate.commands.launch --num_cpu_threads_per_process=4 $launch_args "./sd-scripts/$laungh_script.py" `
+  --output_dir="/root/autodl-tmp/output" `
   --logging_dir="./logs" `
   --max_train_epochs=$max_train_epoches `
   --learning_rate=$lr `
