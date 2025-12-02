@@ -292,14 +292,6 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location, dty
     info = _load_state_dict_on_device(vae, converted_vae_checkpoint, device=map_location, dtype=dtype)
     logger.info(f"VAE: {info}")
 
-    logger.info("Setting VAE Conv2d padding_mode to 'reflect'")
-    for module in vae.modules():
-        if isinstance(module, torch.nn.Conv2d):
-            # 检查是否有 padding
-            pad_h, pad_w = module.padding if isinstance(module.padding, tuple) else (module.padding, module.padding)
-            if pad_h > 0 or pad_w > 0:
-                module.padding_mode = "reflect"
-
     ckpt_info = (epoch, global_step) if epoch is not None else None
     return text_model1, text_model2, vae, unet, logit_scale, ckpt_info
 
