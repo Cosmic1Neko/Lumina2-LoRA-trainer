@@ -93,6 +93,13 @@ class SdxlNetworkTrainer(train_network.NetworkTrainer):
         if torch.__version__ >= "2.0.0":  # PyTorch 2.0.0 以上対応のxformersなら以下が使える
             vae.set_use_memory_efficient_attention_xformers(args.xformers)
 
+        logger.info("Enabling 'reflect' padding for VAE")
+        for module in vae.modules():
+            if isinstance(module, torch.nn.Conv2d):
+                pad_h, pad_w = module.padding if isinstance(module.padding, tuple) else (module.padding, module.padding)
+                if pad_h > 0 or pad_w > 0:
+                    module.padding_mode = "reflect"
+
         return sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, [text_encoder1, text_encoder2], vae, unet
 
     def get_tokenize_strategy(self, args):
