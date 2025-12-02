@@ -475,12 +475,19 @@ class SdxlNetworkTrainer(train_network.NetworkTrainer):
 
         # 下采样的latents
         latents_downsampled = apply_average_pool(latents.float(), factor=4)
+        batch_downsampled = batch.copy()
+        if "original_sizes_hw" in batch:
+            batch_downsampled["original_sizes_hw"] = batch["original_sizes_hw"] // 4
+        if "target_sizes_hw" in batch:
+            batch_downsampled["target_sizes_hw"] = batch["target_sizes_hw"] // 4
+        if "crop_top_lefts" in batch:
+            batch_downsampled["crop_top_lefts"] = batch["crop_top_lefts"] // 4
         model_pred_downsampled, target_downsampled, timesteps_downsampled, weighting_downsampled = self.get_noise_pred_and_target(
             args,
             accelerator,
             noise_scheduler,
             latents_downsampled,
-            batch,
+            batch_downsampled,
             text_encoder_conds,
             unet,
             network,
