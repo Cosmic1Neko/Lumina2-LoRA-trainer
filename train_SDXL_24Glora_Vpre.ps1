@@ -1414,7 +1414,7 @@ if ($caption_tag_dropout_rate) {
 }
 
 # run train
-python -m accelerate.commands.launch --num_cpu_threads_per_process=8 $launch_args "./sd-scripts/$laungh_script.py" `
+python -m accelerate.commands.launch --num_cpu_threads_per_process=4 $launch_args "./sd-scripts/$laungh_script.py" `
   --output_dir="./output" `
   --logging_dir="./logs" `
   --max_train_epochs=$max_train_epoches `
