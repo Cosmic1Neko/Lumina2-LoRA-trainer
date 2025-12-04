@@ -4,7 +4,7 @@ import argparse
 import math
 import os
 import typing
-from typing import Any, List, Union, Optional
+from typing import Any, List, Union, Optional, Any
 import sys
 import random
 import time
