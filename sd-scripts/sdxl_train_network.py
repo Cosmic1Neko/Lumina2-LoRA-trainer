@@ -12,6 +12,9 @@ from library import sdxl_model_util, sdxl_train_util, strategy_base, strategy_sd
 import train_network
 from library.utils import setup_logging
 import math
+from diffusers import DDPMScheduler
+from library import custom_train_functions
+from library.custom_train_functions import prepare_scheduler_for_custom_training
 
 setup_logging()
 import logging
