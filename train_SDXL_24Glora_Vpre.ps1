@@ -17,12 +17,6 @@ $dataset_class = ""
 #$dataset_config = "./toml/datasets_qinglong.toml" # dataset config | 数据集配置文件路径
 $disable_mmap_load_safetensors = 0 #在wsl下加载模型速度增加
 
-#diffuser 参数
-$weighting_scheme = "uniform" # sigma_sqrt, logit_normal, mode, cosmap, uniform
-$logit_mean = 0.0 # logit mean | logit 均值 默认0.0 只在logit_normal下生效
-$logit_std = 1.0 # logit std | logit 标准差 默认1.0 只在logit_normal下生效
-$mode_scale = 1.29 # mode scale | mode 缩放 默认1.29 只在mode下生效
-
 # Train related params | 训练相关参数
 $resolution = "1280,1280" # image resolution w,h. 图片分辨率，宽,高。支持非正方形，但必须是 64 倍数。
 $batch_size = 4 # batch size 一次性训练图片批处理数量，根据显卡质量对应调高。
@@ -141,6 +135,7 @@ $wandb_api_key = "" # wandbAPI KEY，用于登录
 
 # 其他设置
 $enable_bucket = 1 #开启分桶
+$resize_interpolation = "lanczos"  # 可选: lanczos, nearest, bilinear, bicubic, area, box
 $min_bucket_reso = 512 # arb min resolution | arb 最小分辨率
 $max_bucket_reso = 2048 # arb max resolution | arb 最大分辨率
 $bucket_no_upscale = 0 #分桶不放大
@@ -763,6 +758,9 @@ else {
   }
   if ($resolution) {
     [void]$ext_args.Add("--resolution=$resolution")
+  }
+  if ($resize_interpolation) {  
+    [void]$ext_args.Add("--resize_interpolation=$resize_interpolation")  
   }
   if ($enable_bucket) {
     [void]$ext_args.Add("--enable_bucket")
