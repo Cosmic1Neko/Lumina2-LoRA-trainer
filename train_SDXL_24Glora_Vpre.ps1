@@ -136,6 +136,7 @@ $wandb_api_key = "" # wandbAPI KEY，用于登录
 # 其他设置
 $enable_bucket = 1 #开启分桶
 $resize_interpolation = "lanczos"  # 可选: lanczos, nearest, bilinear, bicubic, area, box
+$bucket_reso_steps = 32
 $min_bucket_reso = 512 # arb min resolution | arb 最小分辨率
 $max_bucket_reso = 2048 # arb max resolution | arb 最大分辨率
 $bucket_no_upscale = 0 #分桶不放大
@@ -204,6 +205,8 @@ $no_token_padding = 0 #不进行分词器填充
 #sdxl_db
 $diffusers_xformers = 0
 $train_text_encoder = 0
+$min_timestep = 0 
+$max_timestep = 1000 
 $learning_rate_te1 = "0"
 $learning_rate_te2 = "0"
 $learning_rate_te3 = "0"
