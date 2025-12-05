@@ -1,11 +1,12 @@
 # LoRA train script by @Akegarasu modify by @bdsqlsz
+# pwsh -File train_SDXL_24Glora_Vpre.ps1 2>&1 | tee logs.txt
 
 #训练模式(Lora、db、sdxl_lora、Sdxl_db、sdxl_cn3l、stable_cascade_db、stable_cascade_lora、controlnet、hunyuan_lora、sd3_db)
 $train_mode = "sdxl_lora"
 
 # Train data path | 设置训练用模型、图片
-$pretrained_model = "./Stable-diffusion/SDXL/noobaiXLNAIXL_vPred10Version.safetensors" # base model path | 底模路径
-$vae = "./VAE/sdxl_vae.safetensors"
+$pretrained_model = "/root/autodl-tmp/model/NoobAI-XL-Vpred-v1.0.safetensors" # base model path | 底模路径
+$vae = "/root/autodl-tmp/model/vae/EQB7.safetensors"
 $is_v2_model = 0 # SD2.0 model | SD2.0模型 2.0模型下 clip_skip 默认无效
 $v_parameterization = 1 # parameterization | 参数化 v2 非512基础分辨率版本必须使用。
 $train_data_dir = "/root/autodl-tmp/datasets" # train dataset path | 训练数据集路径
@@ -24,7 +25,7 @@ $max_train_epoches = 10 # max train epoches | 最大训练 epoch
 $save_every_n_epochs = 1 # save every n epochs | 每 N 个 epoch 保存一次
 
 $gradient_checkpointing = 1 #梯度检查，开启后可节约显存，但是速度变慢
-$gradient_accumulation_steps = 8 # 梯度累加数量，变相放大batchsize的倍数
+$gradient_accumulation_steps = 16 # 梯度累加数量，变相放大batchsize的倍数
 $optimizer_accumulation_steps = 0
 
 $network_dim = 128 # network dim | 常用 4~128，不是越大越好
@@ -43,7 +44,7 @@ $loraplus_text_encoder_lr_ratio = 4
 
 #dropout | 抛出(目前和lycoris不兼容，请使用lycoris自带dropout)
 $network_dropout = 0 # dropout 是机器学习中防止神经网络过拟合的技术，建议0.1~0.3 
-$scale_weight_norms = 1.0 #配合 dropout 使用，最大范数约束，推荐1.0
+$scale_weight_norms = 0.0 #配合 dropout 使用，最大范数约束，推荐1.0
 $rank_dropout = 0 #lora模型独创，rank级别的dropout，推荐0.1~0.3，未测试过多
 $module_dropout = 0 #lora模型独创，module级别的dropout(就是分层模块的)，推荐0.1~0.3，未测试过多
 $caption_dropout_every_n_epochs = 0 #dropout caption
@@ -124,36 +125,36 @@ $output_config = 0 #开启后直接输出一个toml配置文件，但是无法�
 $config_file = "./toml/" + $output_name + ".toml" #输出文件保存目录和文件名称，默认用模型保存同名。
 
 #输出采样图片
-$enable_sample = 1 #1开启出图，0禁用
-$sample_at_first = 1 #是否在训练开始时就出图
-$sample_every_n_epochs = 1 #每n个epoch出一次图
+$enable_sample = 0 #1开启出图，0禁用
+$sample_at_first = 0 #是否在训练开始时就出图
+$sample_every_n_epochs = 0 #每n个epoch出一次图
 $sample_prompts = "./toml/qinglong.txt" #prompt文件路径
-$sample_sampler = "euler_a" #采样器 'ddim', 'pndm', 'heun', 'dpmsolver', 'dpmsolver++', 'dpmsingle', 'k_lms', 'k_euler', 'k_euler_a', 'k_dpm_2', 'k_dpm_2_a'
+$sample_sampler = "euler" #采样器 'ddim', 'pndm', 'heun', 'dpmsolver', 'dpmsolver++', 'dpmsingle', 'k_lms', 'k_euler', 'k_euler_a', 'k_dpm_2', 'k_dpm_2_a'
 
 #wandb 日志同步
-$wandb_api_key = "" # wandbAPI KEY，用于登录
+$wandb_api_key = "153aa18816fdbad58f285627f8007c89279bf5a6" # wandbAPI KEY，用于登录
 
 # 其他设置
 $enable_bucket = 1 #开启分桶
 $resize_interpolation = "lanczos"  # 可选: lanczos, nearest, bilinear, bicubic, area, box
-$bucket_reso_steps = 32
+$bucket_reso_steps = 128
 $min_bucket_reso = 512 # arb min resolution | arb 最小分辨率
 $max_bucket_reso = 2048 # arb max resolution | arb 最大分辨率
-$bucket_no_upscale = 0 #分桶不放大
+$bucket_no_upscale = 1 #分桶不放大
 $persistent_workers = 4 # makes workers persistent, further reduces/eliminates the lag in between epochs. however it may increase memory usage | 跑的更快，吃内存。大概能提速2倍
 $vae_batch_size = 4 #vae批处理大小，2-4
 $clip_skip = 2 # clip skip | 玄学 一般用 2
 $cache_latents = 0 #缓存潜变量
 $cache_latents_to_disk = 0 # 缓存图片存盘，下次训练不需要重新缓存，1开启0禁用
-$torch_compile = 1 #使用torch编译功能，需要版本大于2.1
+$torch_compile = 0 #使用torch编译功能，需要版本大于2.1
 $dynamo_backend = "inductor" #"eager", "aot_eager", "inductor","aot_ts_nvfuser","nvprims_nvfuser","cudagraphs","aot_torchxla_trace_once"用于训练
 $TORCHINDUCTOR_FX_GRAPH_CACHE = 1 #启用本地 FX 图缓存。
 $TORCHINDUCTOR_CACHE_DIR = "./torch_compile_cache" #指定所有磁盘缓存的位置。
 
 #lycoris组件
 $enable_lycoris = 1 # 开启lycoris
-$conv_dim = 16 #卷积 dim，推荐＜32
-$conv_alpha = 16 #卷积 alpha，推荐1或者0.3
+$conv_dim = 32 #卷积 dim，推荐＜32
+$conv_alpha = 32 #卷积 alpha，推荐1或者0.3
 $algo = "lora" # algo参数，指定训练lycoris模型种类，
 #包括lora(就是locon)、
 #loha
@@ -183,7 +184,7 @@ $use_tucker = 0 #适用于除 (IA)^3 和full
 $use_scalar = 0 #根据不同算法，自动调整初始权重
 $train_norm = 1 #归一化层
 $dora_wd = 1 #Dora方法分解，低rank使用。适用于LoRA, LoHa, 和LoKr
-$full_matrix = 1  
+$full_matrix = 0  
 $bypass_mode = 0 #通道模式，专为 bnb 8 位/4 位线性层设计。(QLyCORIS)适用于LoRA, LoHa, 和LoKr
 $rescaled = 1 #适用于设置缩放，效果等同于OFT
 $constrain = 0 #设置值为FLOAT，效果等同于COFT
@@ -207,12 +208,13 @@ $diffusers_xformers = 0
 $train_text_encoder = 0
 $min_timestep = 0 
 $max_timestep = 1000 
+$no_half_vae = 0
 $learning_rate_te1 = "0"
 $learning_rate_te2 = "0"
 $learning_rate_te3 = "0"
 
 #多卡设置
-$multi_gpu = 0                         #multi gpu | 多显卡训练开关，0关1开， 该参数仅限在显卡数 >= 2 使用
+$multi_gpu = 1                         #multi gpu | 多显卡训练开关，0关1开， 该参数仅限在显卡数 >= 2 使用
 $highvram = 0                            #高显存模式，开启后会尽量使用显存
 $deepspeed = 0                         #deepspeed | 使用deepspeed训练，0关1开， 该参数仅限在显卡数 >= 2 使用
 $zero_stage = 2                        #zero stage | zero stage 0,1,2,3,阶段2用于训练 该参数仅限在显卡数 >= 2 使用
@@ -721,7 +723,7 @@ elseif ($torch_compile) {
   }
 }
 else {
-  [void]$ext_args.Add("--xformers")
+  [void]$ext_args.Add("--sdpa")
 }
 
 if ($train_mode -ilike "stable_cascade*") {
@@ -1418,7 +1420,7 @@ if ($caption_tag_dropout_rate) {
 
 # run train
 python -m accelerate.commands.launch --num_cpu_threads_per_process=4 $launch_args "./sd-scripts/$laungh_script.py" `
-  --output_dir="./output" `
+  --output_dir="/root/autodl-tmp/output" `
   --logging_dir="./logs" `
   --max_train_epochs=$max_train_epoches `
   --learning_rate=$lr `
