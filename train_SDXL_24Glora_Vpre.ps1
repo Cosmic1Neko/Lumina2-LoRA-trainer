@@ -19,7 +19,7 @@ $dataset_class = ""
 $disable_mmap_load_safetensors = 0 #在wsl下加载模型速度增加
 
 # Train related params | 训练相关参数
-$resolution = "1280,1280" # image resolution w,h. 图片分辨率，宽,高。支持非正方形，但必须是 64 倍数。
+$resolution = "1024,1024" # image resolution w,h. 图片分辨率，宽,高。支持非正方形，但必须是 64 倍数。
 $batch_size = 4 # batch size 一次性训练图片批处理数量，根据显卡质量对应调高。
 $max_train_epoches = 10 # max train epoches | 最大训练 epoch
 $save_every_n_epochs = 1 # save every n epochs | 每 N 个 epoch 保存一次
@@ -108,8 +108,8 @@ $alpha_mask = 0 #是否使用透明蒙版检测
 # Output settings | 输出设置
 $output_name = "NoobLoRA" # output model name | 模型保存名称
 $save_model_as = "safetensors" # model save ext | 模型保存格式 ckpt, pt, safetensors
-$mixed_precision = "bf16" # 默认fp16,no,bf16可选
-$save_precision = "bf16" # 默认fp16,fp32,bf16可选
+$mixed_precision = "fp16" # 默认fp16,no,bf16可选
+$save_precision = "fp16" # 默认fp16,fp32,bf16可选
 $full_fp16 = 0 #开启全fp16模式，自动混合精度变为fp16，更节约显存
 $full_bf16 = 0 #选择全bf16训练，必须30系以上显卡。
 $fp8_base = 0 #开启fp8模式，更节约显存，实验性功能
@@ -146,7 +146,7 @@ $vae_batch_size = 4 #vae批处理大小，2-4
 $clip_skip = 2 # clip skip | 玄学 一般用 2
 $cache_latents = 0 #缓存潜变量
 $cache_latents_to_disk = 0 # 缓存图片存盘，下次训练不需要重新缓存，1开启0禁用
-$torch_compile = 0 #使用torch编译功能，需要版本大于2.1
+$torch_compile = 1 #使用torch编译功能，需要版本大于2.1
 $dynamo_backend = "inductor" #"eager", "aot_eager", "inductor","aot_ts_nvfuser","nvprims_nvfuser","cudagraphs","aot_torchxla_trace_once"用于训练
 $TORCHINDUCTOR_FX_GRAPH_CACHE = 1 #启用本地 FX 图缓存。
 $TORCHINDUCTOR_CACHE_DIR = "./torch_compile_cache" #指定所有磁盘缓存的位置。
